@@ -1,0 +1,19 @@
+domain: namecheapcloud.net
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: tabby-cni-controller
+repo: github.com/NCCloud/tabby-cni
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: namecheapcloud.net
+  group: network
+  kind: Network
+  path: github.com/NCCloud/tabby-cni/api/v1alpha1
+  version: v1alpha1
+version: "3"

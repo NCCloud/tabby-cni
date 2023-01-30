@@ -1,0 +1,31 @@
+# permissions for end users to edit networks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: network-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: tabby-cni-controller
+    app.kubernetes.io/part-of: tabby-cni-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: network-editor-role
+rules:
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
+  - networks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
+  - networks/status
+  verbs:
+  - get

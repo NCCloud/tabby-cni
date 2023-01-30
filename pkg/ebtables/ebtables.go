@@ -60,3 +60,32 @@ func AddRule(rule ...string) error {
 
 	return nil
 }
+
+func DeleteRuleByDevice(bridge string) error {
+	cmd := exec.Command(cmdebtables, "--list", ChainForward)
+	stdout, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Failed to get list of ebtables rules: %v", err)
+	}
+
+	for _, line := range strings.Split(string(stdout), "\n") {
+		if strings.Contains(line, bridge) {
+			if err = DeleteRule(strings.TrimSpace(line)); err != nil {
+				return fmt.Errorf("Failed to delete rule: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func DeleteRule(rule string) error {
+	r := strings.Split(rule, " ")
+	fullargs := makeFullArgs("filter", "-D", ChainForward, r...)
+	cmd := exec.Command(cmdebtables, fullargs...)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	return nil
+}
