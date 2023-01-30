@@ -1,0 +1,27 @@
+# permissions for end users to view networks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: network-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: tabby-cni-controller
+    app.kubernetes.io/part-of: tabby-cni-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: network-viewer-role
+rules:
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
+  - networks
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
+  - networks/status
+  verbs:
+  - get

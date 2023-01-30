@@ -106,3 +106,34 @@ func AddRule(name string, source string, ignore []string) error {
 
 	return nil
 }
+
+func PurgeChain(name string) error {
+	ipt, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	rules, err := ipt.List("nat", "POSTROUTING")
+	if err != nil {
+		return fmt.Errorf("Failed to get list of rules %v", err)
+	}
+
+	for _, rule := range rules {
+		res := strings.Contains(rule, fmt.Sprintf("POSTROUTING-%s", name))
+		if res == true {
+			r := strings.Split(rule, " ")[2:]
+			err = ipt.DeleteIfExists("nat", "POSTROUTING", r...)
+			if err != nil {
+				return fmt.Errorf("Failed to delete rule %s, %v", rule, err)
+			}
+
+			// Delete rules from postrouting
+			err = ipt.ClearAndDeleteChain("nat", fmt.Sprintf("POSTROUTING-%s", name))
+			if err != nil {
+				return fmt.Errorf("Failed to delete rule %v", err)
+			}
+		}
+	}
+
+	return nil
+}
