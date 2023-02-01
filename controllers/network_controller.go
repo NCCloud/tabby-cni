@@ -36,6 +36,7 @@ import (
 )
 
 const networkFinalizer = "network.namecheapcloud.net/finalizer"
+const nodeName = "NODE_NAME"
 
 // NetworkReconciler reconciles a Network object
 type NetworkReconciler struct {
@@ -59,10 +60,14 @@ type NetworkReconciler struct {
 func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Log.Error(err, "Unable to get node hostname")
-		return ctrl.Result{Requeue: true}, nil
+	// Use NODE_NAME env variable or Hostname to identify host.
+	host := os.Getenv(nodeName)
+	if host == "" {
+		host, err := os.Hostname()
+		if err != nil {
+			log.Log.Error(err, fmt.Sprintf("Unable to get node hostname %s", host))
+			return ctrl.Result{Requeue: true}, nil
+		}
 	}
 
 	// TODO(user): your logic here
@@ -70,7 +75,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	log.Log.Info(fmt.Sprintf("REQ %+v", req))
 
 	network := &networkv1alpha1.Network{}
-	err = r.Get(ctx, req.NamespacedName, network)
+	err := r.Get(ctx, req.NamespacedName, network)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -80,17 +85,17 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if network.Spec.Host != hostname {
-		log.Log.Info(fmt.Sprintf("Nothing to do, node hostname %s is not equal to Host %s in spec", hostname, network.Spec.Host))
+	if network.Spec.Host != host {
+		log.Log.Info(fmt.Sprintf("Nothing to do, node hostname %s is not equal to Host %s in spec", host, network.Spec.Host))
 		return ctrl.Result{}, nil
 	}
 
 	// Let's add a finalizer. Then, we can define some operations which should
 	// occurs before the custom resource to be deleted.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers
-	if !controllerutil.ContainsFinalizer(network, fmt.Sprintf("%s.%s", hostname, networkFinalizer)) {
+	if !controllerutil.ContainsFinalizer(network, networkFinalizer) {
 		log.Log.Info("Adding Finalizer for network resource")
-		if ok := controllerutil.AddFinalizer(network, fmt.Sprintf("%s.%s", hostname, networkFinalizer)); !ok {
+		if ok := controllerutil.AddFinalizer(network, networkFinalizer); !ok {
 			log.Log.Error(err, "Failed to add finalizer into the custom resource")
 			return ctrl.Result{Requeue: true}, nil
 		}
@@ -105,7 +110,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// indicated by the deletion timestamp being set.
 	isNetworkMarkedToBeDeleted := network.GetDeletionTimestamp() != nil
 	if isNetworkMarkedToBeDeleted {
-		if controllerutil.ContainsFinalizer(network, fmt.Sprintf("%s.%s", hostname, networkFinalizer)) {
+		if controllerutil.ContainsFinalizer(network, networkFinalizer) {
 			log.Log.Info("Performing Finalizer Operations for Network resource before delete CR")
 
 			// Perform all operations required before remove the finalizer and allow
@@ -135,7 +140,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 
 			log.Log.Info("Removing Finalizer for network after successfully perform the operations")
-			if ok := controllerutil.RemoveFinalizer(network, fmt.Sprintf("%s.%s", hostname, networkFinalizer)); !ok {
+			if ok := controllerutil.RemoveFinalizer(network, networkFinalizer); !ok {
 				log.Log.Error(err, "Failed to remove finalizer for network")
 				return ctrl.Result{Requeue: true}, nil
 			}
