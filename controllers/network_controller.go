@@ -19,23 +19,21 @@ package controllers
 import (
 	"context"
 	"fmt"
-
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/NCCloud/tabby-cni/pkg/bridge"
-	"github.com/vishvananda/netlink"
 
 	networkv1alpha1 "github.com/NCCloud/tabby-cni/api/v1alpha1"
 )
 
-const networkFinalizer = "network.namecheapcloud.net/finalizer"
 const nodeName = "NODE_NAME"
 
 // NetworkReconciler reconciles a Network object
@@ -59,147 +57,89 @@ type NetworkReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+	var shouldRun bool = false
 
-	// Use NODE_NAME env variable or Hostname to identify host.
-	host := os.Getenv(nodeName)
-	if host == "" {
-		host, err := os.Hostname()
-		if err != nil {
-			log.Log.Error(err, fmt.Sprintf("Unable to get node hostname %s", host))
-			return ctrl.Result{Requeue: true}, nil
-		}
+	hostname, err := getHostname()
+	if err != nil {
+		log.Log.Error(err, "Failed to get node hostname")
+		return ctrl.Result{}, err
 	}
 
-	// TODO(user): your logic here
-	log.Log.Info("TESTING")
-	log.Log.Info(fmt.Sprintf("REQ %+v", req))
-
 	network := &networkv1alpha1.Network{}
-	err := r.Get(ctx, req.NamespacedName, network)
-
+	err = r.Get(ctx, req.NamespacedName, network)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Log.Info("Network resource not found. Ignoring since object must be deleted, Cleanup interfaces")
+			log.Log.Info("Network resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
-	if network.Spec.Host != host {
-		log.Log.Info(fmt.Sprintf("Nothing to do, node hostname %s is not equal to Host %s in spec", host, network.Spec.Host))
-		return ctrl.Result{}, nil
-	}
-
-	// Let's add a finalizer. Then, we can define some operations which should
-	// occurs before the custom resource to be deleted.
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers
-	if !controllerutil.ContainsFinalizer(network, networkFinalizer) {
-		log.Log.Info("Adding Finalizer for network resource")
-		if ok := controllerutil.AddFinalizer(network, networkFinalizer); !ok {
-			log.Log.Error(err, "Failed to add finalizer into the custom resource")
-			return ctrl.Result{Requeue: true}, nil
-		}
-
-		if err = r.Update(ctx, network); err != nil {
-			log.Log.Error(err, "Failed to update custom resource to add finalizer")
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Check if the Network instance is marked to be deleted, which is
-	// indicated by the deletion timestamp being set.
-	isNetworkMarkedToBeDeleted := network.GetDeletionTimestamp() != nil
-	if isNetworkMarkedToBeDeleted {
-		if controllerutil.ContainsFinalizer(network, networkFinalizer) {
-			log.Log.Info("Performing Finalizer Operations for Network resource before delete CR")
-
-			// Perform all operations required before remove the finalizer and allow
-			// the Kubernetes API to remove the custom resource.
-			// Re-fetch the network Custom Resource before update the status
-			// so that we have the latest state of the resource on the cluster and we will avoid
-			// raise the issue "the object has been modified, please apply
-			// your changes to the latest version and try again" which would re-trigger the reconciliation
-			if err := r.Get(ctx, req.NamespacedName, network); err != nil {
-				log.Log.Error(err, "Failed to re-fetch network")
-				return ctrl.Result{}, err
-			}
-			log.Log.Info(fmt.Sprintf("Resource %+v", network))
-
-			// Remove linux bridge
-			for _, bridge_spec := range network.Spec.Bridge {
-				if err := bridge.Remove(bridge_spec.Name); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-
-			// Remove iptables rules
-			if network.Spec.IpMasq.Enabled {
-				if err = DeleteMasquerade(&network.Spec.IpMasq); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-
-			log.Log.Info("Removing Finalizer for network after successfully perform the operations")
-			if ok := controllerutil.RemoveFinalizer(network, networkFinalizer); !ok {
-				log.Log.Error(err, "Failed to remove finalizer for network")
-				return ctrl.Result{Requeue: true}, nil
-			}
-
-			if err := r.Update(ctx, network); err != nil {
-				log.Log.Error(err, "Failed to remove finalizer for network")
-				return ctrl.Result{}, err
-			}
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// Create network resources
-	// Create linux bridge
-	for _, bridge_spec := range network.Spec.Bridge {
-		br, err := bridge.Create(bridge_spec.Name, bridge_spec.Mtu)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		// Add vlan to the interface
-		for _, port_spec := range bridge_spec.Ports {
-			vlan, err := bridge.AddVlan(port_spec.Name, port_spec.Vlan, port_spec.Mtu)
-			if err != nil {
-				log.Log.Error(err, fmt.Sprintf("failed to add vlan %d to interface %s", port_spec.Vlan, port_spec.Name))
-				return ctrl.Result{}, err
-			}
-
-			// Attach vlan interface to the linux bridge
-			if err := netlink.LinkSetMaster(vlan, br); err != nil {
-				log.Log.Error(err, fmt.Sprintf("failed to add interface %s to the bridge %s", vlan.Name, br.Name))
-				return ctrl.Result{}, err
-			}
-		}
-	}
-
-	// Add static routes
-	for _, route := range network.Spec.Routes {
-		if err = addRoute(route); err != nil {
-			log.Log.Error(err, "Failed to add static routes")
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Add or remove snat firewall rules
-	if network.Spec.IpMasq.Enabled {
-		if err = EnableMasquerade(&network.Spec.IpMasq); err != nil {
-			log.Log.Error(err, fmt.Sprintf("failed to add masquerade: %v", network.Spec.IpMasq))
-			return ctrl.Result{}, err
-		}
+	if len(network.Spec.NodeSelectors) == 0 {
+		shouldRun = true
 	} else {
-		if err = DeleteMasquerade(&network.Spec.IpMasq); err != nil {
-			return ctrl.Result{}, err
+		// Get node hostname. Default from env variable NODE_NAME, if not defined then use hostname
+		nodelabels, err := r.nodeLabels(ctx, hostname)
+		if err != nil {
+			log.Log.Error(err, "Failed to get node labels")
+		}
+
+		var nodeSels []labels.Selector
+		for _, s := range network.Spec.NodeSelectors {
+			s := s // so we can use &s
+			labelSelector, _ := metav1.LabelSelectorAsSelector(&s)
+			nodeSels = append(nodeSels, labelSelector)
+		}
+
+		for _, ns := range nodeSels {
+			if ns.Matches(nodelabels) {
+				shouldRun = true
+			}
 		}
 	}
 
-	log.Log.Info(fmt.Sprintf("Resource %+v", network))
-	log.Log.Info(fmt.Sprintf("Linux bridge was created %s", network.Name))
+	if shouldRun {
+		log.Log.Info("Creating networkAttachment resource")
+		networkAttachment := &networkv1alpha1.NetworkAttachment{}
+
+		err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", hostname, req.Name), Namespace: req.Namespace}, networkAttachment)
+		if err != nil && errors.IsNotFound(err) {
+			networkAttachment, err := NewNetworkAttachment(hostname, network, req)
+			if err != nil {
+				log.Log.Error(err, "Unable to allocate networkAttachment structure")
+			}
+
+			if err := r.Create(ctx, networkAttachment); err != nil {
+				log.Log.Error(err, "Failed to create networkAttachment resource")
+				return ctrl.Result{}, err
+			}
+		} else if err != nil {
+			log.Log.Error(err, "Failed to get networkattachment resource")
+			return ctrl.Result{}, err
+		}
+	}
+	log.Log.Info(fmt.Sprintf("RUNNING reconciler %+v", req))
 
 	return ctrl.Result{}, nil
+}
+
+func (r *NetworkReconciler) nodeLabels(ctx context.Context, nodeName string) (labels.Set, error) {
+	// Get list of kubernetes nodes
+	nodes := &corev1.NodeList{}
+	err := r.List(ctx, nodes)
+	if err != nil {
+		log.Log.Error(err, "Could't get list of nodes")
+		return nil, err
+	}
+
+	// Find node labels
+	for _, name := range nodes.Items {
+		if name.Name == nodeName {
+			return labels.Set(name.Labels), nil
+		}
+	}
+
+	return nil, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -207,4 +147,18 @@ func (r *NetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&networkv1alpha1.Network{}).
 		Complete(r)
+}
+
+func getHostname() (string, error) {
+	var err error
+
+	host := os.Getenv(nodeName)
+	if host == "" {
+		host, err = os.Hostname()
+		if err != nil {
+			log.Log.Error(err, fmt.Sprintf("Unable to get node hostname %s", host))
+			return "", err
+		}
+	}
+	return host, nil
 }

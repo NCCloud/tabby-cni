@@ -7,22 +7,24 @@ metadata:
     app.kubernetes.io/part-of: tabby-cni-controller
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: tabby-cni-controller
-  name: cmp01-island12.namecheapcloud.net-br2710
+  name: br2740
 spec:
-  host: cmp01-island12.namecheapcloud.net
+  nodeSelectors:
+  - matchLabels:
+      beta.kubernetes.io/arch: amd64
   bridge:
-    - name: br2710
-      mtu: 9000
-      ports:
-        - name: bond0
-          vlan: 2710
-          mtu: 9000
+    - name: br2740
+      mtu: 1500
+#      ports:
+#        - name: eth0
+#          vlan: 2720
+#          mtu: 1500
 #  routes:
 #    - device: br2710
 #      destination: 192.168.10.0/24
-#      source: 192.168.39.0/24
+#      source: 10.25.42.0/24
 #  ipMasq:
 #    enabled: true
-#    source: 192.168.1.0/24
-#    ignore: ["10.0.17.0/24", "10.25.42.0/24", "10.148.0.0/15", "10.150.0.0/16", "192.168.90.0/24"]
+#    source: 192.168.40.0/24
+#    ignore: ["10.0.17.0/24", "10.25.42.0/24", "10.148.0.0/15", "10.150.0.0/16"]
 #    bridge: br2710
