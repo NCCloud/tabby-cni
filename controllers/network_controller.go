@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -58,10 +59,13 @@ type NetworkReconciler struct {
 func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 	var shouldRun bool = false
+	var isUpdateRequired bool = false
+
+	log.Log.Info("Network: Reconsile network resource")
 
 	hostname, err := getHostname()
 	if err != nil {
-		log.Log.Error(err, "Failed to get node hostname")
+		log.Log.Error(err, "Network: Failed to get node hostname")
 		return ctrl.Result{}, err
 	}
 
@@ -69,7 +73,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	err = r.Get(ctx, req.NamespacedName, network)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Log.Info("Network resource not found. Ignoring since object must be deleted")
+			log.Log.Info("Network: Network resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -81,7 +85,7 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		// Get node hostname. Default from env variable NODE_NAME, if not defined then use hostname
 		nodelabels, err := r.nodeLabels(ctx, hostname)
 		if err != nil {
-			log.Log.Error(err, "Failed to get node labels")
+			log.Log.Error(err, "Network: Failed to get node labels")
 		}
 
 		var nodeSels []labels.Selector
@@ -99,26 +103,52 @@ func (r *NetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if shouldRun {
-		log.Log.Info("Creating networkAttachment resource")
 		networkAttachment := &networkv1alpha1.NetworkAttachment{}
 
 		err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", hostname, req.Name), Namespace: req.Namespace}, networkAttachment)
 		if err != nil && errors.IsNotFound(err) {
+			log.Log.Info("Network: Creating networkAttachment resource")
+
 			networkAttachment, err := NewNetworkAttachment(hostname, network, req)
 			if err != nil {
-				log.Log.Error(err, "Unable to allocate networkAttachment structure")
+				log.Log.Error(err, "Network: Unable to allocate networkAttachment structure")
 			}
 
 			if err := r.Create(ctx, networkAttachment); err != nil {
-				log.Log.Error(err, "Failed to create networkAttachment resource")
+				log.Log.Error(err, "Network: Failed to create networkAttachment resource")
 				return ctrl.Result{}, err
 			}
+
+			return ctrl.Result{}, nil
 		} else if err != nil {
-			log.Log.Error(err, "Failed to get networkattachment resource")
+			log.Log.Error(err, "Network: Failed to get networkattachment resource")
 			return ctrl.Result{}, err
 		}
+		// TBD add proper filter and remove this w/a
+		if !reflect.DeepEqual(network.Spec.Bridge, networkAttachment.Spec.Bridge) {
+			networkAttachment.Spec.Bridge = network.Spec.Bridge
+			isUpdateRequired = true
+		}
+
+		if !reflect.DeepEqual(network.Spec.Routes, networkAttachment.Spec.Routes) {
+			networkAttachment.Spec.Routes = network.Spec.Routes
+			isUpdateRequired = true
+		}
+
+		if !reflect.DeepEqual(network.Spec.IpMasq, networkAttachment.Spec.IpMasq) {
+			networkAttachment.Spec.IpMasq = network.Spec.IpMasq
+			isUpdateRequired = true
+		}
+
+		if isUpdateRequired {
+			log.Log.Info("Network: Updating networkAttachment resource")
+
+			if err := r.Update(ctx, networkAttachment); err != nil {
+				log.Log.Error(err, "Network: Failed to update networkattachment resource")
+				return ctrl.Result{}, err
+			}
+		}
 	}
-	log.Log.Info(fmt.Sprintf("RUNNING reconciler %+v", req))
 
 	return ctrl.Result{}, nil
 }
@@ -128,7 +158,7 @@ func (r *NetworkReconciler) nodeLabels(ctx context.Context, nodeName string) (la
 	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
 	if err != nil {
-		log.Log.Error(err, "Could't get list of nodes")
+		log.Log.Error(err, "Network: Could't get list of nodes")
 		return nil, err
 	}
 
@@ -156,7 +186,7 @@ func getHostname() (string, error) {
 	if host == "" {
 		host, err = os.Hostname()
 		if err != nil {
-			log.Log.Error(err, fmt.Sprintf("Unable to get node hostname %s", host))
+			log.Log.Error(err, fmt.Sprintf("Network: Unable to get node hostname %s", host))
 			return "", err
 		}
 	}
