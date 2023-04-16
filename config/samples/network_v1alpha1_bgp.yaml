@@ -7,17 +7,17 @@ metadata:
     app.kubernetes.io/part-of: tabby-cni-controller
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: tabby-cni-controller
-  name: br2740
+  name: br2705
 spec:
   nodeSelectors:
   - matchLabels:
       beta.kubernetes.io/arch: amd64
   bridge:
-    - name: br2740
+    - name: br2705
       mtu: 9000
       ports:
-        - name: bond1
-          vlan: 2740
+        - name: bond0
+          vlan: 2705
           mtu: 9000
 #  routes:
 #    - device: br2740

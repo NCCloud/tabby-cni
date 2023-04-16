@@ -1,0 +1,21 @@
+apiVersion: network.namecheapcloud.net/v1alpha1
+kind: NetworkAttachment
+metadata:
+  name: kind-worker3-br2710
+  namespace: default
+spec:
+  bridge:
+  - mtu: 1500
+    name: br2710
+    ports:
+    - mtu: 1500
+      name: eth0
+      vlan: 2710
+  ipMasq:
+    enabled: false
+    source: ""
+  nodeName: kind-worker3
+  nodeSelectors:
+  - matchLabels:
+      kubernetes.io/arch: amd64
+

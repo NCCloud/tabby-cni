@@ -8,16 +8,23 @@ import (
 )
 
 type Bridge struct {
-	Name string
-	Mtu  int
+	Name  string
+	Mtu   int
+	Ports []Port
 }
 
-func Create(name string, mtu int) (*netlink.Bridge, error) {
+type Port struct {
+	Name string
+	Mtu  int
+	Vlan int
+}
+
+func (bridge *Bridge) Create() (*netlink.Bridge, error) {
 
 	br := &netlink.Bridge{
 		LinkAttrs: netlink.LinkAttrs{
-			Name: name,
-			MTU:  mtu,
+			Name: bridge.Name,
+			MTU:  bridge.Mtu,
 			// Let kernel use default txqueuelen; leaving it unset
 			// means 0, and a zero-length TX queue messes up FIFO
 			// traffic shapers which use TX queue length as the
@@ -38,8 +45,8 @@ func Create(name string, mtu int) (*netlink.Bridge, error) {
 	return br, nil
 }
 
-func Remove(name string) error {
-	br, err := netlink.LinkByName(name)
+func (bridge *Bridge) Remove() error {
+	br, err := netlink.LinkByName(bridge.Name)
 	if err != nil {
 		if err.Error() == "Link not found" {
 			return nil
@@ -48,6 +55,46 @@ func Remove(name string) error {
 	}
 
 	if err = netlink.LinkDel(br); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bridge *Bridge) AddPort(port *Port) error {
+	if port.Mtu == 0 {
+		port.Mtu = bridge.Mtu
+	}
+
+	if port.Vlan == 0 {
+
+	} else {
+		AddVlan(port.Name, port.Vlan, port.Mtu)
+	}
+
+	fmt.Println(port.Mtu)
+	return nil
+}
+
+func DeletePort(name string) error {
+	port, err := netlink.LinkByName(name)
+	if err != nil {
+		if err.Error() == "Link not found" {
+			return nil
+		}
+		return err
+	}
+
+	// Allow to remove vlan interface for now
+	if port.Type() != "vlan" {
+		return fmt.Errorf("Only vlan interface could be removed: name: %s, type: %s", name, port.Type())
+	}
+
+	if err = netlink.LinkSetNoMaster(port); err != nil {
+		return err
+	}
+
+	if err = netlink.LinkDel(port); err != nil {
 		return err
 	}
 

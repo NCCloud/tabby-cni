@@ -48,18 +48,12 @@ func AddRule(name string, source string, ignore []string) error {
 			table:  "nat",
 			chain:  "POSTROUTING",
 			source: source,
-			action: fmt.Sprintf("POSTROUTING-%s", name),
+			action: fmt.Sprintf("%s-POSTROUTING", name),
 		},
 		{
 			table:  "nat",
-			chain:  fmt.Sprintf("POSTROUTING-%s", name),
+			chain:  fmt.Sprintf("%s-POSTROUTING", name),
 			action: "MASQUERADE",
-		},
-		{
-			table:       "nat",
-			chain:       fmt.Sprintf("POSTROUTING-%s", name),
-			destination: source,
-			action:      "ACCEPT",
 		},
 	}
 
@@ -68,13 +62,13 @@ func AddRule(name string, source string, ignore []string) error {
 		return err
 	}
 
-	ipt.NewChain("nat", fmt.Sprintf("POSTROUTING-%s", name))
+	ipt.NewChain("nat", fmt.Sprintf("%s-POSTROUTING", name))
 
 	for _, r := range ignore {
 		rules = append(
 			rules, Rules{
 				table:       "nat",
-				chain:       fmt.Sprintf("POSTROUTING-%s", name),
+				chain:       fmt.Sprintf("%s-POSTROUTING", name),
 				destination: r,
 				action:      "ACCEPT",
 			})
@@ -119,7 +113,7 @@ func PurgeChain(name string) error {
 	}
 
 	for _, rule := range rules {
-		res := strings.Contains(rule, fmt.Sprintf("POSTROUTING-%s", name))
+		res := strings.Contains(rule, fmt.Sprintf("%s-POSTROUTING", name))
 		if res == true {
 			r := strings.Split(rule, " ")[2:]
 			err = ipt.DeleteIfExists("nat", "POSTROUTING", r...)
@@ -128,7 +122,7 @@ func PurgeChain(name string) error {
 			}
 
 			// Delete rules from postrouting
-			err = ipt.ClearAndDeleteChain("nat", fmt.Sprintf("POSTROUTING-%s", name))
+			err = ipt.ClearAndDeleteChain("nat", fmt.Sprintf("%s-POSTROUTING", name))
 			if err != nil {
 				return fmt.Errorf("Failed to delete rule %v", err)
 			}

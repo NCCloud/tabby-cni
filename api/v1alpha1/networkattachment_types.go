@@ -24,46 +24,19 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // NetworkSpec defines the desired state of Network
-type NetworkSpec struct {
+type NetworkAttachmentSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Bridge        []Bridge               `json:"bridge"`
 	IpMasq        Masquerade             `json:"ipMasq,omitempty"`
 	Routes        []Route                `json:"routes,omitempty"`
+	NodeName      string                 `json:"nodeName"`
 	NodeSelectors []metav1.LabelSelector `json:"nodeSelectors,omitempty"`
 }
 
-// Linux bridge
-type Bridge struct {
-	Name  string `json:"name"`
-	Mtu   int    `json:"mtu,omitempty"`
-	Ports []Port `json:"ports,omitempty"`
-}
-
-type Port struct {
-	Name string `json:"name"`
-	Vlan int    `json:"vlan,omitempty"`
-	Mtu  int    `json:"mtu,omitempty"`
-}
-
-// Static routes
-type Route struct {
-	Via         string `json:"via"`
-	Destination string `json:"destination"`
-	Source      string `json:"source,omitempty"`
-}
-
-// Masquerade overcloud traffic
-type Masquerade struct {
-	Enabled bool     `json:"enabled"`
-	Source  string   `json:"source"`
-	Ignore  []string `json:"ignore,omitempty"`
-	Bridge  string   `json:"bridge,omitempty"`
-}
-
 // NetworkStatus defines the observed state of Network
-type NetworkStatus struct {
+type NetworkAttachmentStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -72,23 +45,23 @@ type NetworkStatus struct {
 //+kubebuilder:subresource:status
 
 // Network is the Schema for the networks API
-type Network struct {
+type NetworkAttachment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NetworkSpec   `json:"spec,omitempty"`
-	Status NetworkStatus `json:"status,omitempty"`
+	Spec   NetworkAttachmentSpec   `json:"spec,omitempty"`
+	Status NetworkAttachmentStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
 // NetworkList contains a list of Network
-type NetworkList struct {
+type NetworkAttachmentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Network `json:"items"`
+	Items           []NetworkAttachment `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Network{}, &NetworkList{})
+	SchemeBuilder.Register(&NetworkAttachment{}, &NetworkAttachmentList{})
 }

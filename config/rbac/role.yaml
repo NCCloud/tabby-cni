@@ -8,6 +8,32 @@ rules:
 - apiGroups:
   - network.namecheapcloud.net
   resources:
+  - networkattachments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
+  - networkattachments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
+  - networkattachments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - network.namecheapcloud.net
+  resources:
   - networks
   verbs:
   - create

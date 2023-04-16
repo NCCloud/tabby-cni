@@ -66,10 +66,10 @@ spec:
         args:
         - -metrics-bind-address=:8001
         - -health-probe-bind-address=:8002
-        image: ruslanloman/tabby-cni-controller:v0.0.2
+        image: ruslanloman/tabby-cni-controller:v0.0.33
         name: manager
         securityContext:
-          #privileged: true
+          privileged: true
           runAsUser: 0
           capabilities:
             add: ["NET_ADMIN", "SYS_TIME"]
