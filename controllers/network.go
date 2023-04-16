@@ -30,44 +30,56 @@ func EqualCIDR(a, b *net.IPNet) bool {
 	return true
 }
 
-func addRoute(route networkv1alpha1.Route) error {
+func addRoute(r networkv1alpha1.Route) error {
 	var src_ip net.IP
+	var route netlink.Route
 
-	iface, err := netlink.LinkByName(route.Device)
-	if err != nil {
-		return err
-	}
-	_, dst, err := net.ParseCIDR(route.Destination)
-	if err != nil {
-		return err
-	}
-
-	_, src, err := net.ParseCIDR(route.Source)
+	_, dst, err := net.ParseCIDR(r.Destination)
 	if err != nil {
 		return err
 	}
 
-	routeList, err := netlink.RouteList(nil, netlink.FAMILY_V4)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range routeList {
-		if EqualCIDR(r.Dst, src) {
-			src_ip = r.Src
+	gw := net.ParseIP(r.Via)
+	// check if via ip address or device
+	if gw == nil {
+		iface, err := netlink.LinkByName(r.Via)
+		if err != nil {
+			return err
 		}
+		route = netlink.Route{LinkIndex: iface.Attrs().Index, Scope: netlink.SCOPE_LINK}
+	} else {
+		route = netlink.Route{Scope: netlink.SCOPE_UNIVERSE, Gw: gw}
 	}
 
-	if src_ip == nil {
-		return fmt.Errorf(fmt.Sprintf("Could not find src ip for network %s on host", route.Source))
+	fmt.Println(len(r.Source))
+
+	if r.Source != "" {
+		_, src, err := net.ParseCIDR(r.Source)
+		if err != nil {
+			return err
+		}
+
+		routeList, err := netlink.RouteList(nil, netlink.FAMILY_V4)
+		if err != nil {
+			return err
+		}
+
+		for _, r := range routeList {
+			if EqualCIDR(r.Dst, src) {
+				src_ip = r.Src
+			}
+		}
+
+		if src_ip == nil {
+			return fmt.Errorf(fmt.Sprintf("Could not find src ip for network %s on host", r.Source))
+		}
+
+		route.Src = src_ip
 	}
 
-	err = netlink.RouteAdd(&netlink.Route{
-		LinkIndex: iface.Attrs().Index,
-		Scope:     netlink.SCOPE_LINK,
-		Dst:       dst,
-		Src:       src_ip,
-	})
+	route.Dst = dst
+
+	err = netlink.RouteAdd(&route)
 	if err != nil && err != syscall.EEXIST {
 		return err
 	}

@@ -75,7 +75,7 @@ func portDiff(prev, current *networkv1alpha1.NetworkAttachmentSpec) ([]string, e
 		log.Log.Info(fmt.Sprintf("NetworkAttachment: Show networkattachment diff %+v", change))
 
 		if change.Type == "delete" || change.Type == "update" {
-			if slices.Contains(change.Path, "Bridge") {
+			if change.Path[0] == "Bridge" {
 				// Changelog Path returns [Bridge 0 Port 0 Name]
 				_brId, _portId := change.Path[1], change.Path[3]
 				brId, err := strToInt(_brId)

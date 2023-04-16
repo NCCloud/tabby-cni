@@ -100,6 +100,10 @@ func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				return ctrl.Result{}, err
 			}
 
+			if err = DeleteMasquerade(&networkAttachment.Spec.IpMasq); err != nil {
+				return ctrl.Result{}, err
+			}
+
 			log.Log.Info("NetworkAttachment: Removing Finalizer for network after successfully perform the operations")
 			if ok := controllerutil.RemoveFinalizer(networkAttachment, networkAttachmentFinalizer); !ok {
 				log.Log.Error(err, "NetworkAttachment: Failed to remove finalizer for network")

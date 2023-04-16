@@ -49,9 +49,9 @@ type Port struct {
 
 // Static routes
 type Route struct {
-	Device      string `json:"device,omitempty"`
-	Source      string `json:"source"`
+	Via         string `json:"via"`
 	Destination string `json:"destination"`
+	Source      string `json:"source,omitempty"`
 }
 
 // Masquerade overcloud traffic

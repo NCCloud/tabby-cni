@@ -135,13 +135,13 @@ spec:
                   properties:
                     destination:
                       type: string
-                    device:
-                      type: string
                     source:
+                      type: string
+                    via:
                       type: string
                   required:
                   - destination
-                  - source
+                  - via
                   type: object
                 type: array
             required:
