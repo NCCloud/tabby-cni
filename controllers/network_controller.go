@@ -43,9 +43,9 @@ type NetworkReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=network.namecheapcloud.net,resources=networks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=network.namecheapcloud.net,resources=networks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=network.namecheapcloud.net,resources=networks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cloud.spaceship.com,resources=networks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cloud.spaceship.com,resources=networks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cloud.spaceship.com,resources=networks/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

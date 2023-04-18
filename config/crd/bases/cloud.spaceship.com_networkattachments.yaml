@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: networks.network.namecheapcloud.net
+  name: networkattachments.cloud.spaceship.com
 spec:
-  group: network.namecheapcloud.net
+  group: cloud.spaceship.com
   names:
-    kind: Network
-    listKind: NetworkList
-    plural: networks
-    singular: network
+    kind: NetworkAttachment
+    listKind: NetworkAttachmentList
+    plural: networkattachments
+    singular: networkattachment
   scope: Namespaced
   versions:
   - name: v1alpha1
@@ -77,6 +77,8 @@ spec:
                 - enabled
                 - source
                 type: object
+              nodeName:
+                type: string
               nodeSelectors:
                 items:
                   description: A label selector is a label query over a set of resources.
@@ -144,6 +146,7 @@ spec:
                 type: array
             required:
             - bridge
+            - nodeName
             type: object
           status:
             description: NetworkStatus defines the observed state of Network
