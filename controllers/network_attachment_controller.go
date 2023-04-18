@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const networkAttachmentFinalizer = "network.namecheapcloud.net/finalizer"
+const networkAttachmentFinalizer = "cloud.spaceship.com/finalizer"
 const lastAppliedConfiguration = "networkattachment/last-applied-configuration"
 
 // NetworkAttachmentReconciler reconciles a Network object
@@ -51,9 +51,9 @@ type NetworkAttachmentChangelog struct {
 	delPorts []networkv1alpha1.Bridge
 }
 
-//+kubebuilder:rbac:groups=network.namecheapcloud.net,resources=networkattachments,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=network.namecheapcloud.net,resources=networkattachments/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=network.namecheapcloud.net,resources=networkattachments/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cloud.spaceship.com,resources=networkattachments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cloud.spaceship.com,resources=networkattachments/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cloud.spaceship.com,resources=networkattachments/finalizers,verbs=update
 
 func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
@@ -175,7 +175,7 @@ func NewNetworkAttachment(hostname string, n *networkv1alpha1.Network, req ctrl.
 			Namespace: req.Namespace,
 			OwnerReferences: []metav1.OwnerReference{{
 				// d.APIVersion is empty.
-				APIVersion: "network.namecheapcloud.net/v1alpha1",
+				APIVersion: "cloud.spaceship.com/v1alpha1",
 				// d.Kind is empty.
 				Kind:               "Network",
 				Name:               n.Name,
