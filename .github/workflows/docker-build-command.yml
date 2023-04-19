@@ -11,7 +11,7 @@ jobs:
       HARBOR_ROBOT_PASSWORD: ${{ secrets.HARBOR_TOKEN_ROBOT_INFRASTRUCTURE }}
       HARBOR_ROBOT_USERNAME: "robot$infrastructure+infrastructure"
       HARBOR_ENDPOINT: "harbor-bedrock.namecheapcloud.net"
-      ROBOT_GITHUB_TOKEN_JEANCLOUDJUNCKER: ${{ secrets.ROBOT_GITHUB_TOKEN_JEANCLOUDJUNCKER }}
+      GO_VERSION: "1.19"
     runs-on: [self-hosted, docker-builder, production]
     steps:
       - name: Checkout
@@ -32,6 +32,11 @@ jobs:
 
       - name: Pull latest image to use for cache
         run: docker pull ${{ steps.harbor-image-name.outputs.name }}:latest || true
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Build the Docker image
         run: |
