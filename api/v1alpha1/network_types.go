@@ -48,6 +48,7 @@ type Port struct {
 }
 
 // Static routes
+// The Via parameter could be ip address or device name.
 type Route struct {
 	Via         string `json:"via"`
 	Destination string `json:"destination"`
@@ -60,6 +61,7 @@ type Masquerade struct {
 	Source  string   `json:"source"`
 	Ignore  []string `json:"ignore,omitempty"`
 	Bridge  string   `json:"bridge,omitempty"`
+	Outface string   `json:"outface,omitempty"`
 }
 
 // NetworkStatus defines the observed state of Network

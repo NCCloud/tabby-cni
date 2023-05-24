@@ -34,6 +34,10 @@ func renderRule(rule *Rules) []string {
 		prepareRule = append(prepareRule, "-j", rule.action)
 	}
 
+	if rule.outface != "" {
+		prepareRule = append(prepareRule, "-o", rule.outface)
+	}
+
 	if rule.comment != "" {
 		prepareRule = append(prepareRule, "-m comment --comment", rule.comment)
 	}
@@ -41,7 +45,7 @@ func renderRule(rule *Rules) []string {
 	return prepareRule
 }
 
-func AddRule(name string, source string, ignore []string) error {
+func AddRule(name string, source string, ignore []string, outface string) error {
 	// Default iptables rules
 	rules := []Rules{
 		{
@@ -51,9 +55,10 @@ func AddRule(name string, source string, ignore []string) error {
 			action: fmt.Sprintf("%s-POSTROUTING", name),
 		},
 		{
-			table:  "nat",
-			chain:  fmt.Sprintf("%s-POSTROUTING", name),
-			action: "MASQUERADE",
+			table:   "nat",
+			chain:   fmt.Sprintf("%s-POSTROUTING", name),
+			outface: outface,
+			action:  "MASQUERADE",
 		},
 	}
 
