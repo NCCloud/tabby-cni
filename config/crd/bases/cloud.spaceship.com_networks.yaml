@@ -71,6 +71,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  outface:
+                    type: string
                   source:
                     type: string
                 required:
@@ -129,7 +131,8 @@ spec:
                 type: array
               routes:
                 items:
-                  description: Static routes
+                  description: Static routes The Via parameter could be ip address
+                    or device name.
                   properties:
                     destination:
                       type: string
