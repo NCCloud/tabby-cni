@@ -28,14 +28,13 @@ func EnableMasquerade(ipmasq *networkv1alpha1.Masquerade) error {
 
 	// Make sure arp request won't go outside of compute node
 	// ebtables-nft -I FORWARD -p ARP -o br2710 --arp-ip-dst 169.254.1.1 -j DROP
-
 	rule := []string{"-p", "ARP", "-o", ipmasq.Bridge, "--arp-ip-dst", virtualIpaddress, "-j", "DROP"}
 
 	if err := ebtables.AddRule(rule...); err != nil {
 		return err
 	}
 
-	if err := iptables.AddRule(ipmasq.Bridge, ipmasq.Source, ipmasq.Ignore); err != nil {
+	if err := iptables.AddRule(ipmasq.Bridge, ipmasq.Source, ipmasq.Ignore, ipmasq.Outface); err != nil {
 		return err
 	}
 
