@@ -12,7 +12,7 @@ jobs:
       HARBOR_ROBOT_USERNAME: "robot$infrastructure+infrastructure"
       HARBOR_ENDPOINT: "harbor-bedrock.namecheapcloud.net"
       GO_VERSION: "1.19"
-    runs-on: [self-hosted, docker-builder, production]
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
