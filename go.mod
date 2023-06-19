@@ -13,6 +13,16 @@ require (
 )
 
 require (
+	github.com/j-keck/arping v1.0.3 // indirect
+	github.com/josharian/native v1.0.0 // indirect
+	github.com/mdlayher/arp v0.0.0-20220512170110-6706a2966875 // indirect
+	github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118 // indirect
+	github.com/mdlayher/packet v1.0.0 // indirect
+	github.com/mdlayher/socket v0.2.1 // indirect
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
+)
+
+require (
 	cloud.google.com/go v0.97.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.27 // indirect

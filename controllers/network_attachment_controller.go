@@ -100,8 +100,10 @@ func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				return ctrl.Result{}, err
 			}
 
-			if err = DeleteMasquerade(&networkAttachment.Spec.IpMasq); err != nil {
-				return ctrl.Result{}, err
+			if networkAttachment.Spec.IpMasq.Enabled {
+				if err = DeleteMasquerade(&networkAttachment.Spec.IpMasq); err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 
 			log.Log.Info("NetworkAttachment: Removing Finalizer for network after successfully perform the operations")
@@ -130,6 +132,7 @@ func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, err
 		}
 	}
+
 	if err = r.DiffNetwork(ctx, req); err != nil {
 		return ctrl.Result{}, err
 	}
