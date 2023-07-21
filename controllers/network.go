@@ -12,6 +12,7 @@ import (
 
 	networkv1alpha1 "github.com/NCCloud/tabby-cni/api/v1alpha1"
 	"github.com/NCCloud/tabby-cni/pkg/bridge"
+	"github.com/NCCloud/tabby-cni/pkg/ebtables"
 )
 
 func EqualCIDR(a, b *net.IPNet) bool {
@@ -123,10 +124,58 @@ func CreateNetwork(ctx context.Context, spec *networkv1alpha1.NetworkAttachmentS
 
 	// Add or remove snat firewall rules
 	if spec.IpMasq.Enabled {
-		if err := EnableMasquerade(&spec.IpMasq); err != nil {
+		vrouter := NewVirtualRouter(spec.IpMasq.Bridge)
+		if err := vrouter.Create(); err != nil {
+			log.Log.Error(err, fmt.Sprintf("failed to create vrouter: %s", err))
+			return err
+		}
+
+		veth, err := CreateVethPair(spec.IpMasq.Bridge)
+		if err != nil {
+			log.Log.Error(err, fmt.Sprintf("failed to create veth pair: %s", err))
+		}
+
+		if err := vrouter.AttachInterface(veth.Attrs().Name); err != nil {
+			log.Log.Error(err, fmt.Sprintf("failed to attach veth pair to namespace: %s", err))
+		}
+
+		if err := vrouter.WithNetNS(func() error {
+			if err := Masquerading(veth.Attrs().Name, spec.IpMasq.Source, spec.IpMasq.Ignore, spec.IpMasq.Outface); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
 			log.Log.Error(err, fmt.Sprintf("failed to add masquerade: %v", spec.IpMasq))
 			return err
 		}
+
+		br, err := netlink.LinkByName(spec.IpMasq.Bridge)
+		if err != nil {
+			fmt.Printf("Failed to get linux bridge %s\n", err)
+		}
+
+		peerName, err := netlink.LinkByName(veth.PeerName)
+		if err != nil {
+			fmt.Printf("Failed to get linux veth pair %s\n", err)
+		}
+
+		// Attach vlan interface to the linux bridge
+		if err := netlink.LinkSetMaster(peerName, br); err != nil {
+			fmt.Println(err)
+		}
+
+		rule := []string{"-p", "ARP", "--logical-out", spec.IpMasq.Bridge, "--arp-ip-dst", virtualIpaddress, "-j", "DROP"}
+
+		if err := ebtables.AddRule(rule...); err != nil {
+			fmt.Println(err)
+		}
+
+		/*
+			if err := EnableMasquerade(&spec.IpMasq); err != nil {
+				log.Log.Error(err, fmt.Sprintf("failed to add masquerade: %v", spec.IpMasq))
+				return err
+			}
+		*/
 	}
 
 	return nil
