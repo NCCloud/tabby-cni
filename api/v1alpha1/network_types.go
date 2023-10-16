@@ -57,11 +57,11 @@ type Route struct {
 
 // Masquerade overcloud traffic
 type Masquerade struct {
-	Enabled bool     `json:"enabled"`
-	Source  string   `json:"source"`
-	Ignore  []string `json:"ignore,omitempty"`
-	Bridge  string   `json:"bridge,omitempty"`
-	Outface string   `json:"outface,omitempty"`
+	Enabled       bool     `json:"enabled"`
+	Source        string   `json:"source"`
+	Ignore        []string `json:"ignore,omitempty"`
+	Bridge        string   `json:"bridge,omitempty"`
+	EgressNetwork string   `json:"egressnetwork,omitempty"`
 }
 
 // NetworkStatus defines the observed state of Network

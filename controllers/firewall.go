@@ -42,7 +42,7 @@ func EnableMasquerade(ipmasq *networkv1alpha1.Masquerade) error {
 		return err
 	}
 
-	if err := iptables.AddRule(ipmasq.Bridge, ipmasq.Source, ipmasq.Ignore, ipmasq.Outface); err != nil {
+	if err := iptables.AddRule(ipmasq.Bridge, ipmasq.Source, ipmasq.Ignore, ipmasq.EgressNetwork); err != nil {
 		return err
 	}
 

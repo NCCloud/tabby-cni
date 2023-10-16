@@ -65,14 +65,14 @@ spec:
                 properties:
                   bridge:
                     type: string
+                  egressnetwork:
+                    type: string
                   enabled:
                     type: boolean
                   ignore:
                     items:
                       type: string
                     type: array
-                  outface:
-                    type: string
                   source:
                     type: string
                 required:

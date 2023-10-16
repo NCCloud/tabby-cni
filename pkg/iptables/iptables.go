@@ -2,10 +2,12 @@ package iptables
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
 type Rules struct {
@@ -45,7 +47,31 @@ func renderRule(rule *Rules) []string {
 	return prepareRule
 }
 
-func AddRule(name string, source string, ignore []string, outface string) error {
+func AddRule(name string, source string, ignore []string, egressnetwork string) error {
+
+	var (
+		egressIntreface string
+		//		egressIpAddress string
+	)
+
+	if egressnetwork != "" {
+		egressNetIp, _, err := net.ParseCIDR(egressnetwork)
+		if err != nil {
+			return err
+		}
+
+		egressRoute, _ := netlink.RouteGet(egressNetIp)
+		if len(egressRoute) != 1 {
+			return fmt.Errorf("failed to find network for snat: %v", egressRoute)
+		}
+
+		i, _ := net.InterfaceByIndex(egressRoute[0].LinkIndex)
+		egressIntreface = i.Name
+
+		//egressIpAddress = egressRoute[0].Src.To4().String()
+
+	}
+
 	// Default iptables rules
 	rules := []Rules{
 		{
@@ -57,7 +83,7 @@ func AddRule(name string, source string, ignore []string, outface string) error 
 		{
 			table:   "nat",
 			chain:   fmt.Sprintf("%s-POSTROUTING", name),
-			outface: outface,
+			outface: egressIntreface,
 			action:  "MASQUERADE",
 		},
 	}
@@ -98,7 +124,7 @@ func AddRule(name string, source string, ignore []string, outface string) error 
 
 			err = ipt.Insert(rls.table, rls.chain, 1, r...)
 			if err != nil {
-				return fmt.Errorf("Failed to add iptables rule %v", err)
+				return fmt.Errorf("failed to add iptables rule %v", err)
 			}
 		}
 	}
@@ -114,22 +140,22 @@ func PurgeChain(name string) error {
 
 	rules, err := ipt.List("nat", "POSTROUTING")
 	if err != nil {
-		return fmt.Errorf("Failed to get list of rules %v", err)
+		return fmt.Errorf("failed to get list of rules %v", err)
 	}
 
 	for _, rule := range rules {
 		res := strings.Contains(rule, fmt.Sprintf("%s-POSTROUTING", name))
-		if res == true {
+		if res {
 			r := strings.Split(rule, " ")[2:]
 			err = ipt.DeleteIfExists("nat", "POSTROUTING", r...)
 			if err != nil {
-				return fmt.Errorf("Failed to delete rule %s, %v", rule, err)
+				return fmt.Errorf("failed to delete rule %s, %v", rule, err)
 			}
 
 			// Delete rules from postrouting
 			err = ipt.ClearAndDeleteChain("nat", fmt.Sprintf("%s-POSTROUTING", name))
 			if err != nil {
-				return fmt.Errorf("Failed to delete rule %v", err)
+				return fmt.Errorf("failed to delete rule %v", err)
 			}
 		}
 	}
