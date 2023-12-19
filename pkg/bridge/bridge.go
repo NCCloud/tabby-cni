@@ -128,7 +128,7 @@ func DeletePort(name string) error {
 
 	// Allow to remove vlan interface for now
 	if port.Type() != "vlan" {
-		return fmt.Errorf("Only vlan interface could be removed: name: %w, type: %w", name, port.Type())
+		return fmt.Errorf("Only vlan interface could be removed: name: %s, type: %s", name, port.Type())
 	}
 
 	if err = netlink.LinkSetNoMaster(port); err != nil {
