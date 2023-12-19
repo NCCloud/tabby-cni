@@ -97,7 +97,8 @@ func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			log.Log.Info("NetworkAttachment: Performing Finalizer Operations for Network resource before delete CR")
 
 			if err = DeleteNetwork(ctx, &networkAttachment.Spec); err != nil {
-				return ctrl.Result{}, err
+				log.Log.Error(err, "NetworkAttachment: Failed to remove network due to error")
+				return ctrl.Result{}, nil
 			}
 
 			if networkAttachment.Spec.IpMasq.Enabled {

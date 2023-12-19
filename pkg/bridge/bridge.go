@@ -2,10 +2,13 @@ package bridge
 
 import (
 	"fmt"
+	"os"
 	"syscall"
 
 	"github.com/vishvananda/netlink"
 )
+
+const SYSFS_PATH = "/sys/class/net/%s/brif/"
 
 type Bridge struct {
 	Name  string
@@ -47,6 +50,7 @@ func (bridge *Bridge) Create() (*netlink.Bridge, error) {
 
 func (bridge *Bridge) Remove() error {
 	br, err := netlink.LinkByName(bridge.Name)
+
 	if err != nil {
 		if err.Error() == "Link not found" {
 			return nil
@@ -54,11 +58,48 @@ func (bridge *Bridge) Remove() error {
 		return err
 	}
 
+	ports, err := BridgeListPorts(bridge.Name)
+	if err != nil {
+		return err
+	}
+
+	if len(ports) > 0 {
+		// Remove port that was added by ourself since it will be
+		// deleted together with the bridge and could be ignored.
+		for _, port := range bridge.Ports {
+			p := port.Name
+			if port.Vlan > 0 {
+				p = fmt.Sprintf("%s.%d", port.Name, port.Vlan)
+			}
+
+			ports = removeElement(ports, p)
+		}
+
+		if len(ports) > 0 {
+			return fmt.Errorf("Unable to delete bridge, there is still attached interface %s", ports)
+		}
+	}
+
 	if err = netlink.LinkDel(br); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func BridgeListPorts(name string) ([]string, error) {
+	var ports []string
+
+	files, err := os.ReadDir(fmt.Sprintf(SYSFS_PATH, name))
+	if err != nil {
+		return nil, fmt.Errorf("Unable to find bridge path %w", err)
+	}
+
+	for _, file := range files {
+		ports = append(ports, file.Name())
+	}
+
+	return ports, nil
 }
 
 func (bridge *Bridge) AddPort(port *Port) error {
@@ -87,7 +128,7 @@ func DeletePort(name string) error {
 
 	// Allow to remove vlan interface for now
 	if port.Type() != "vlan" {
-		return fmt.Errorf("Only vlan interface could be removed: name: %s, type: %s", name, port.Type())
+		return fmt.Errorf("Only vlan interface could be removed: name: %w, type: %w", name, port.Type())
 	}
 
 	if err = netlink.LinkSetNoMaster(port); err != nil {
@@ -128,4 +169,23 @@ func AddVlan(iface string, vlanId int, mtu int) (*netlink.Vlan, error) {
 	}
 
 	return vlan, nil
+}
+
+func removeElement(s []string, value string) []string {
+	var idx = -1
+
+	for i, v := range s {
+		if v == value {
+			idx = i
+			break
+		}
+	}
+
+	// Return slice as is if there is no matching
+	if idx < 0 {
+		return s
+	}
+
+	s[idx] = s[len(s)-1]
+	return s[:len(s)-1]
 }
