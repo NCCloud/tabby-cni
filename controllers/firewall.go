@@ -46,8 +46,8 @@ func EnableMasquerade(ipmasq *networkv1alpha1.Masquerade) error {
 		return err
 	}
 
-	// After applying ebtables arp rules, it's better to send arp gratuitous request to make sure all overcloud
-	// nodes use proper mac for default gateway.
+	// After applying ebtables arp rules, it's better to send arp gratuitous request to make sure all Virtual Machines
+	// use proper mac for default gateway.
 	if err := arping.GratuitousArpOverIfaceByName(net.ParseIP(virtualIpaddress), ipmasq.Bridge); err != nil {
 		return err
 	}

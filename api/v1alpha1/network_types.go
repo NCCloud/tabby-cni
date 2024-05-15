@@ -55,12 +55,12 @@ type Route struct {
 	Source      string `json:"source,omitempty"`
 }
 
-// Masquerade overcloud traffic
+// Masquerade virtual machine traffic
 type Masquerade struct {
 	Enabled       bool     `json:"enabled"`
 	Source        string   `json:"source"`
 	Ignore        []string `json:"ignore,omitempty"`
-	Bridge        string   `json:"bridge,omitempty"`
+	Bridge        string   `json:"bridge"`
 	EgressNetwork string   `json:"egressnetwork,omitempty"`
 }
 

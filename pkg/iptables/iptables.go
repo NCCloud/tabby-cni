@@ -50,7 +50,7 @@ func renderRule(rule *Rules) []string {
 func AddRule(name string, source string, ignore []string, egressnetwork string) error {
 
 	var (
-		egressIntreface string
+		egressInterface string
 		//		egressIpAddress string
 	)
 
@@ -66,7 +66,7 @@ func AddRule(name string, source string, ignore []string, egressnetwork string) 
 		}
 
 		i, _ := net.InterfaceByIndex(egressRoute[0].LinkIndex)
-		egressIntreface = i.Name
+		egressInterface = i.Name
 
 		//egressIpAddress = egressRoute[0].Src.To4().String()
 
@@ -83,7 +83,7 @@ func AddRule(name string, source string, ignore []string, egressnetwork string) 
 		{
 			table:   "nat",
 			chain:   fmt.Sprintf("%s-POSTROUTING", name),
-			outface: egressIntreface,
+			outface: egressInterface,
 			action:  "MASQUERADE",
 		},
 	}
@@ -140,7 +140,7 @@ func PurgeChain(name string) error {
 
 	rules, err := ipt.List("nat", "POSTROUTING")
 	if err != nil {
-		return fmt.Errorf("failed to get list of rules %v", err)
+		return fmt.Errorf("failed to get list of iptables rules %v", err)
 	}
 
 	for _, rule := range rules {
@@ -149,13 +149,13 @@ func PurgeChain(name string) error {
 			r := strings.Split(rule, " ")[2:]
 			err = ipt.DeleteIfExists("nat", "POSTROUTING", r...)
 			if err != nil {
-				return fmt.Errorf("failed to delete rule %s, %v", rule, err)
+				return fmt.Errorf("failed to delete iptables rule `%s`, %v", rule, err)
 			}
 
 			// Delete rules from postrouting
 			err = ipt.ClearAndDeleteChain("nat", fmt.Sprintf("%s-POSTROUTING", name))
 			if err != nil {
-				return fmt.Errorf("failed to delete rule %v", err)
+				return fmt.Errorf("failed to delete iptables chain %v", err)
 			}
 		}
 	}
