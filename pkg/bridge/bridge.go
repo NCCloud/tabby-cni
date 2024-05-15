@@ -76,7 +76,7 @@ func (bridge *Bridge) Remove() error {
 		}
 
 		if len(ports) > 0 {
-			return fmt.Errorf("Unable to delete bridge, there is still attached interface %s", ports)
+			return fmt.Errorf("unable to delete bridge, there is still attached interface %s", ports)
 		}
 	}
 
@@ -92,7 +92,7 @@ func BridgeListPorts(name string) ([]string, error) {
 
 	files, err := os.ReadDir(fmt.Sprintf(SYSFS_PATH, name))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find bridge path %w", err)
+		return nil, fmt.Errorf("unable to find bridge path %w", err)
 	}
 
 	for _, file := range files {
@@ -128,7 +128,7 @@ func DeletePort(name string) error {
 
 	// Allow to remove vlan interface for now
 	if port.Type() != "vlan" {
-		return fmt.Errorf("Only vlan interface could be removed: name: %s, type: %s", name, port.Type())
+		return fmt.Errorf("only vlan interface could be removed: name: %s, type: %s", name, port.Type())
 	}
 
 	if err = netlink.LinkSetNoMaster(port); err != nil {

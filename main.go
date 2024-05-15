@@ -30,9 +30,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	networkv1alpha1 "github.com/NCCloud/tabby-cni/api/v1alpha1"
 	"github.com/NCCloud/tabby-cni/controllers"
+	commmon "github.com/NCCloud/tabby-cni/pkg/common"
+	virtv1 "kubevirt.io/api/core/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -45,6 +48,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(networkv1alpha1.AddToScheme(scheme))
+
+	utilruntime.Must(virtv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -61,10 +66,13 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	operatorConfig := commmon.NewConfig()
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         false,
 	})
@@ -86,6 +94,15 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkAttachment")
 		os.Exit(1)
+	}
+	if operatorConfig.WatchKubevirtMigration {
+		if err = (&controllers.VirtualMachineReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "VirtualMachine")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 

@@ -32,7 +32,7 @@ func AddRule(rule ...string) error {
 	cmd := exec.Command(cmdebtables, "--list", ChainForward)
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Failed to get list of ebtables rules: %v", err)
+		return fmt.Errorf("failed to get list of ebtables rules: %v", err)
 	}
 
 	exist := checkIfRuleExists(string(stdout), rule...)
@@ -52,9 +52,9 @@ func AddRule(rule ...string) error {
 
 		fullargs := makeFullArgs("filter", "-I", ChainForward, rule...)
 		cmd = exec.Command(cmdebtables, fullargs...)
-		stdout, err = cmd.CombinedOutput()
+		_, err = cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("Failed to add ebtables rule %v, %v", rule, err)
+			return fmt.Errorf("failed to add ebtables rule %v, %v", rule, err)
 		}
 	}
 
@@ -65,13 +65,14 @@ func DeleteRuleByDevice(bridge string) error {
 	cmd := exec.Command(cmdebtables, "--list", ChainForward)
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Failed to get list of ebtables rules: %v", err)
+		return fmt.Errorf("failed to get list of ebtables rules: %v", err)
 	}
 
 	for _, line := range strings.Split(string(stdout), "\n") {
 		if strings.Contains(line, bridge) {
 			if err = DeleteRule(strings.TrimSpace(line)); err != nil {
-				return fmt.Errorf("Failed to delete rule: %v", err)
+				return fmt.Errorf(
+					"failed to delete ebtables rule `%s` for bridge `%s`: %v", line, bridge, err)
 			}
 		}
 	}
