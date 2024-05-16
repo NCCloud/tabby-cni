@@ -60,7 +60,7 @@ type Masquerade struct {
 	Enabled       bool     `json:"enabled"`
 	Source        string   `json:"source"`
 	Ignore        []string `json:"ignore,omitempty"`
-	Bridge        string   `json:"bridge,omitempty"`
+	Bridge        string   `json:"bridge"`
 	EgressNetwork string   `json:"egressnetwork,omitempty"`
 }
 

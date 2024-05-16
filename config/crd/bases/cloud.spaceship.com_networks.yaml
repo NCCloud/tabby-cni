@@ -80,6 +80,7 @@ spec:
                   source:
                     type: string
                 required:
+                - bridge
                 - enabled
                 - source
                 type: object
