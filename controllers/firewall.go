@@ -39,17 +39,17 @@ func EnableMasquerade(ipmasq *networkv1alpha1.Masquerade) error {
 	rule := []string{"-p", "ARP", "--logical-out", ipmasq.Bridge, "--arp-ip-dst", virtualIpaddress, "-j", "DROP"}
 
 	if err := ebtables.AddRule(rule...); err != nil {
-		return err
+		return fmt.Errorf("failed to add ebtables rule while enabling masquerading %v: %v", rule, err)
 	}
 
 	if err := iptables.AddRule(ipmasq.Bridge, ipmasq.Source, ipmasq.Ignore, ipmasq.EgressNetwork); err != nil {
-		return err
+		return fmt.Errorf("failed to add iptables rule while enabling masquerading: %v", err)
 	}
 
 	// After applying ebtables arp rules, it's better to send arp gratuitous request to make sure all Virtual Machines
 	// use proper mac for default gateway.
 	if err := arping.GratuitousArpOverIfaceByName(net.ParseIP(virtualIpaddress), ipmasq.Bridge); err != nil {
-		return err
+		return fmt.Errorf("failed to send arp request after applying ebtables arp rules: %v", err)
 	}
 
 	return nil

@@ -72,7 +72,7 @@ func DeleteRuleByDevice(bridge string) error {
 		if strings.Contains(line, bridge) {
 			if err = DeleteRule(strings.TrimSpace(line)); err != nil {
 				return fmt.Errorf(
-					"failed to delete ebtables rule `%s` for bridge `%s`: %v", line, bridge, err)
+					"failed to delete ebtables rule %q for bridge %q: %v", line, bridge, err)
 			}
 		}
 	}

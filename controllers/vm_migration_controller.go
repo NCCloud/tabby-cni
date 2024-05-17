@@ -50,7 +50,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	virtualMachineInstance := &virtv1.VirtualMachineInstance{}
 	err := r.Get(ctx, req.NamespacedName, virtualMachineInstance)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to find VM %v: %v", req, err)
 	}
 
 	virtualMachineNetworks := virtualMachineInstance.Spec.Networks
@@ -62,12 +62,13 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			continue
 		}
 
-		namespacedNetworkName := getNamespacedNetworkName(multusNetwork.NetworkName)
+		networkName := multusNetwork.NetworkName
+		namespacedNetworkName := getNamespacedNetworkName(networkName)
 
 		network := &networkv1alpha1.Network{}
 		err := r.Get(ctx, namespacedNetworkName, network)
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to find Network %s: %v", networkName, err)
 		}
 
 		networkIpMasq := network.Spec.IpMasq
@@ -85,7 +86,7 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		)
 		err = arping.GratuitousArpOverIfaceByName(net.ParseIP(virtualIpaddress), interfaceName)
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to send an arp request for VM %v: %v", req, err)
 		}
 
 	}
@@ -118,12 +119,10 @@ func migrationSuccessful(vmi virtv1.VirtualMachineInstance) bool {
 	if vmi.Status.MigrationState == nil {
 		return false
 	}
-	migrationCompleted := vmi.Status.MigrationState.Completed
-	migrationFailed := vmi.Status.MigrationState.Failed
 
 	// completed and not failed
 	// migration can fail but complete if it was aborted
-	return migrationCompleted && !migrationFailed
+	return vmi.Status.MigrationState.Completed && !vmi.Status.MigrationState.Failed
 }
 
 func filterVirtualMachineMigrationEvents(e event.UpdateEvent) bool {

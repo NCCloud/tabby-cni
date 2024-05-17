@@ -146,8 +146,7 @@ func AddVlan(iface string, vlanId int, mtu int) (*netlink.Vlan, error) {
 
 	parentLink, err := netlink.LinkByName(iface)
 	if err != nil {
-		err = fmt.Errorf("failed to find a link by name %s: %v", iface, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to find a link by name %s: %v", iface, err)
 	}
 
 	vlan := &netlink.Vlan{
@@ -162,13 +161,11 @@ func AddVlan(iface string, vlanId int, mtu int) (*netlink.Vlan, error) {
 
 	err = netlink.LinkAdd(vlan)
 	if err != nil && err != syscall.EEXIST {
-		err = fmt.Errorf("failed to add a new link device vlan=%+v, error=%v", vlan, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to add a new link device vlan=%+v, error=%v", vlan, err)
 	}
 
 	if err = netlink.LinkSetUp(vlan); err != nil {
-		err = fmt.Errorf("failed to enable the link vlan=%+v, error=%v", vlan, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to enable the link vlan=%+v, error=%v", vlan, err)
 	}
 
 	return vlan, nil

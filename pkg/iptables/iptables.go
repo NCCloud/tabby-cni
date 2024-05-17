@@ -51,7 +51,6 @@ func AddRule(name string, source string, ignore []string, egressnetwork string) 
 
 	var (
 		egressInterface string
-		//		egressIpAddress string
 	)
 
 	if egressnetwork != "" {
@@ -67,9 +66,6 @@ func AddRule(name string, source string, ignore []string, egressnetwork string) 
 
 		i, _ := net.InterfaceByIndex(egressRoute[0].LinkIndex)
 		egressInterface = i.Name
-
-		//egressIpAddress = egressRoute[0].Src.To4().String()
-
 	}
 
 	// Default iptables rules
