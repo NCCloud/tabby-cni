@@ -76,7 +76,7 @@ func (bridge *Bridge) Remove() error {
 		}
 
 		if len(ports) > 0 {
-			return fmt.Errorf("Unable to delete bridge, there is still attached interface %s", ports)
+			return fmt.Errorf("unable to delete bridge, there is still attached interface %s", ports)
 		}
 	}
 
@@ -92,7 +92,7 @@ func BridgeListPorts(name string) ([]string, error) {
 
 	files, err := os.ReadDir(fmt.Sprintf(SYSFS_PATH, name))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find bridge path %w", err)
+		return nil, fmt.Errorf("unable to find bridge path %w", err)
 	}
 
 	for _, file := range files {
@@ -128,7 +128,7 @@ func DeletePort(name string) error {
 
 	// Allow to remove vlan interface for now
 	if port.Type() != "vlan" {
-		return fmt.Errorf("Only vlan interface could be removed: name: %s, type: %s", name, port.Type())
+		return fmt.Errorf("only vlan interface could be removed: name: %s, type: %s", name, port.Type())
 	}
 
 	if err = netlink.LinkSetNoMaster(port); err != nil {
@@ -146,7 +146,7 @@ func AddVlan(iface string, vlanId int, mtu int) (*netlink.Vlan, error) {
 
 	parentLink, err := netlink.LinkByName(iface)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find a link by name %s: %v", iface, err)
 	}
 
 	vlan := &netlink.Vlan{
@@ -161,11 +161,11 @@ func AddVlan(iface string, vlanId int, mtu int) (*netlink.Vlan, error) {
 
 	err = netlink.LinkAdd(vlan)
 	if err != nil && err != syscall.EEXIST {
-		return nil, err
+		return nil, fmt.Errorf("failed to add a new link device vlan=%+v, error=%v", vlan, err)
 	}
 
 	if err = netlink.LinkSetUp(vlan); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to enable the link vlan=%+v, error=%v", vlan, err)
 	}
 
 	return vlan, nil

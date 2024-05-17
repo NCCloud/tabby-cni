@@ -58,7 +58,7 @@ type NetworkAttachmentChangelog struct {
 func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	log.Log.Info(fmt.Sprintf("NetworkAttachment: Reconsile networkattachment resource %+v", req))
+	log.Log.Info(fmt.Sprintf("NetworkAttachment: Reconcile networkattachment resource %+v", req))
 
 	hostname, err := getHostname()
 	if err != nil {
@@ -70,7 +70,7 @@ func (r *NetworkAttachmentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	err = r.Get(ctx, req.NamespacedName, networkAttachment)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Log.Info("NetworkAttachment: NetworkAttachemnt resource not found. Ignoring since object must be deleted")
+			log.Log.Info("NetworkAttachment: NetworkAttachment resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
