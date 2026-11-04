@@ -1,6 +1,10 @@
 module github.com/NCCloud/tabby-cni
 
-go 1.22.0
+go 1.27.3
+
+// Go 1.24+ enables MPTCP on listeners by default; disable it to stay off the
+// MPTCP attack surface of CVE-2026-98432.
+godebug multipathtcp=0
 
 require (
 	github.com/coreos/go-iptables v0.6.0
