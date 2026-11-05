@@ -10,17 +10,17 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// PrivilegedEnv must be set to "1" to run tests that change the host network.
-// Run them with `make test-privileged`, which uses a throwaway privileged
+// IntegrationEnv must be set to "1" to run tests that change the host network.
+// Run them with `make test-integration`, which uses a throwaway privileged
 // container so the developer machine or CI runner is never touched.
-const PrivilegedEnv = "TABBY_PRIVILEGED_TESTS"
+const IntegrationEnv = "TABBY_INTEGRATION_TESTS"
 
-// RequirePrivileged skips the test unless it runs as root with PrivilegedEnv=1.
-func RequirePrivileged(t *testing.T) {
+// RequireIntegration skips the test unless it runs as root with IntegrationEnv=1.
+func RequireIntegration(t *testing.T) {
 	t.Helper()
 
-	if os.Getenv(PrivilegedEnv) != "1" {
-		t.Skipf("set %s=1 and run as root (make test-privileged) to run this test", PrivilegedEnv)
+	if os.Getenv(IntegrationEnv) != "1" {
+		t.Skipf("set %s=1 and run as root (make test-integration) to run this test", IntegrationEnv)
 	}
 
 	if os.Geteuid() != 0 {

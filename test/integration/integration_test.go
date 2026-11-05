@@ -1,11 +1,11 @@
-// Package privileged runs the tests that need root and change the host network
+// Package integration runs the tests that need root and change the host network
 // (bridges, vlans, routes, iptables and ebtables rules) inside a throwaway
 // privileged container, so they can run on any machine with Docker without
 // touching the host network.
 //
 // It is a separate Go module so testcontainers and its dependencies do not end
 // up in the tabby-cni binary.
-package privileged
+package integration
 
 import (
 	"bufio"
@@ -23,15 +23,15 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
-// privilegedEnv matches internal/testutil.PrivilegedEnv in the main module.
-const privilegedEnv = "TABBY_PRIVILEGED_TESTS"
+// integrationEnv matches internal/testutil.IntegrationEnv in the main module.
+const integrationEnv = "TABBY_INTEGRATION_TESTS"
 
-func TestPrivileged(t *testing.T) {
-	if os.Getenv(privilegedEnv) == "1" {
-		t.Skip("already running inside the privileged container")
+func TestIntegration(t *testing.T) {
+	if os.Getenv(integrationEnv) == "1" {
+		t.Skip("already running inside the integration test container")
 	}
 	if testing.Short() {
-		t.Skip("skipping privileged tests in short mode")
+		t.Skip("skipping integration tests in short mode")
 	}
 	testcontainers.SkipIfProviderIsNotHealthy(t)
 
@@ -43,13 +43,13 @@ func TestPrivileged(t *testing.T) {
 
 	ctr, err := testcontainers.Run(ctx, "",
 		testcontainers.WithDockerfile(testcontainers.FromDockerfile{
-			Context:   filepath.Join(root, "test", "privileged"),
+			Context:   filepath.Join(root, "test", "integration"),
 			BuildArgs: map[string]*string{"GO_VERSION": &goVersion},
-			Repo:      "tabby-cni-privileged-test",
+			Repo:      "tabby-cni-integration-test",
 			Tag:       goVersion,
 			KeepImage: true,
 		}),
-		testcontainers.WithEnv(map[string]string{privilegedEnv: "1"}),
+		testcontainers.WithEnv(map[string]string{integrationEnv: "1"}),
 		testcontainers.WithHostConfigModifier(func(hc *container.HostConfig) {
 			hc.Privileged = true
 			hc.Binds = append(hc.Binds,
@@ -71,7 +71,7 @@ func TestPrivileged(t *testing.T) {
 	)
 	testcontainers.CleanupContainer(t, ctr)
 	if err != nil {
-		t.Fatalf("failed to run the privileged test container: %v", err)
+		t.Fatalf("failed to run the integration test container: %v", err)
 	}
 
 	logs, err := ctr.Logs(ctx)
@@ -90,7 +90,7 @@ func TestPrivileged(t *testing.T) {
 		t.Fatalf("failed to get container state: %v", err)
 	}
 	if state.ExitCode != 0 {
-		t.Fatalf("privileged tests failed with exit code %d", state.ExitCode)
+		t.Fatalf("integration tests failed with exit code %d", state.ExitCode)
 	}
 }
 

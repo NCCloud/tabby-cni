@@ -22,8 +22,8 @@ jobs:
       - name: Unit tests
         run: make test
 
-      - name: Load kernel modules for network tests
+      - name: Load kernel modules for integration tests
         run: sudo modprobe -a bridge 8021q dummy
 
-      - name: Network tests
-        run: make test-privileged
+      - name: Integration tests
+        run: make test-integration

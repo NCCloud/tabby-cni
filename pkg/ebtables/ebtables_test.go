@@ -45,7 +45,7 @@ func TestMakeFullArgs(t *testing.T) {
 }
 
 func TestAddRuleAndDeleteRuleByDevice(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	if _, err := exec.LookPath(cmdebtables); err != nil {
 		t.Skipf("%s is not installed", cmdebtables)
 	}

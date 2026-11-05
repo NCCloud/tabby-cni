@@ -48,7 +48,7 @@ func TestRenderRule(t *testing.T) {
 }
 
 func TestAddRuleAndPurgeChain(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	testutil.AddDummy(t, "tegress0", "10.250.0.1/24")
 
 	ipt, err := goiptables.NewWithProtocol(goiptables.ProtocolIPv4)
@@ -86,7 +86,7 @@ func TestAddRuleAndPurgeChain(t *testing.T) {
 }
 
 func TestAddRuleUnknownEgressNetwork(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 
 	if err := AddRule("tbrbad", "10.20.0.0/24", nil, "not-a-cidr"); err == nil {
 		t.Fatal("AddRule() with an invalid egress network should fail")

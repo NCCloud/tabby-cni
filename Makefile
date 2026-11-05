@@ -105,9 +105,9 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
-.PHONY: test-privileged
-test-privileged: ## Run the tests that change the host network (bridges, vlans, routes, iptables) in a privileged container. Needs Docker.
-	cd test/privileged && go test -count=1 -v ./...
+.PHONY: test-integration
+test-integration: ## Run integration tests against a real kernel (bridges, vlans, routes, iptables) in a privileged container. Needs Docker.
+	cd test/integration && go test -count=1 -v ./...
 
 ##@ Build
 

@@ -39,7 +39,7 @@ func deleteRoute(dst string) {
 }
 
 func TestAddRoute(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	dev := testutil.AddDummy(t, "trt0", "10.251.0.1/24")
 	t.Cleanup(func() {
 		deleteRoute("10.252.0.0/16")
@@ -120,7 +120,7 @@ func TestAddRoute(t *testing.T) {
 }
 
 func TestCreateAndDeleteNetwork(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	testutil.AddDummy(t, "tcn0", "")
 	t.Cleanup(func() {
 		testutil.DeleteLink("tcn0.30")
@@ -181,7 +181,7 @@ func TestCreateAndDeleteNetwork(t *testing.T) {
 }
 
 func TestEnableAndDeleteMasquerade(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	testutil.AddDummy(t, "tmq-egress", "10.248.0.1/24")
 	t.Cleanup(func() { testutil.DeleteLink("tbr-mq") })
 

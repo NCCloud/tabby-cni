@@ -1,4 +1,4 @@
-# Image used by privileged_test.go to run the tests that change the host
+# Image used by integration_test.go to run the tests that change the host
 # network (links, routes, iptables and ebtables) inside a throwaway container.
 ARG GO_VERSION
 FROM golang:${GO_VERSION}

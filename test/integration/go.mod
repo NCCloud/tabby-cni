@@ -1,4 +1,4 @@
-module github.com/NCCloud/tabby-cni/test/privileged
+module github.com/NCCloud/tabby-cni/test/integration
 
 go 1.27.3
 

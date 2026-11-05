@@ -36,7 +36,7 @@ func TestRemoveElement(t *testing.T) {
 }
 
 func TestBridgeCreateAndRemove(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	t.Cleanup(func() { testutil.DeleteLink("tbr-create") })
 
 	br := &Bridge{Name: "tbr-create", Mtu: 1400}
@@ -82,7 +82,7 @@ func TestBridgeCreateAndRemove(t *testing.T) {
 }
 
 func TestAddVlanAndBridgePorts(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	testutil.AddDummy(t, "tvl0", "")
 	t.Cleanup(func() {
 		testutil.DeleteLink("tvl0.100")
@@ -144,7 +144,7 @@ func TestAddVlanAndBridgePorts(t *testing.T) {
 }
 
 func TestAddVlanMissingParent(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 
 	if _, err := AddVlan("tmissing0", 10, 1500); err == nil {
 		t.Fatal("AddVlan() with a missing parent interface should fail")
@@ -152,7 +152,7 @@ func TestAddVlanMissingParent(t *testing.T) {
 }
 
 func TestBridgeRemoveWithForeignPort(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	foreign := testutil.AddDummy(t, "tforeign0", "")
 	t.Cleanup(func() { testutil.DeleteLink("tbr-foreign") })
 
@@ -174,7 +174,7 @@ func TestBridgeRemoveWithForeignPort(t *testing.T) {
 }
 
 func TestDeletePort(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	testutil.AddDummy(t, "tdp0", "")
 	t.Cleanup(func() { testutil.DeleteLink("tdp0.20") })
 
@@ -204,7 +204,7 @@ func TestDeletePort(t *testing.T) {
 }
 
 func TestAddPort(t *testing.T) {
-	testutil.RequirePrivileged(t)
+	testutil.RequireIntegration(t)
 	testutil.AddDummy(t, "tap0", "")
 	t.Cleanup(func() { testutil.DeleteLink("tap0.40") })
 
