@@ -16,31 +16,6 @@ rules:
   - cloud.spaceship.com
   resources:
   - networkattachments
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cloud.spaceship.com
-  resources:
-  - networkattachments/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - cloud.spaceship.com
-  resources:
-  - networkattachments/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - cloud.spaceship.com
-  resources:
   - networks
   verbs:
   - create
@@ -53,12 +28,14 @@ rules:
 - apiGroups:
   - cloud.spaceship.com
   resources:
+  - networkattachments/finalizers
   - networks/finalizers
   verbs:
   - update
 - apiGroups:
   - cloud.spaceship.com
   resources:
+  - networkattachments/status
   - networks/status
   verbs:
   - get

@@ -71,7 +71,7 @@ func addRoute(r networkv1alpha1.Route) error {
 		}
 
 		if src_ip == nil {
-			return fmt.Errorf(fmt.Sprintf("Could not find src ip for network %s on host", r.Source))
+			return fmt.Errorf("Could not find src ip for network %s on host", r.Source)
 		}
 
 		route.Src = src_ip

@@ -74,28 +74,37 @@ func portDiff(prev, current *networkv1alpha1.NetworkAttachmentSpec) ([]string, e
 	for _, change := range changelog {
 		log.Log.Info(fmt.Sprintf("NetworkAttachment: Show networkattachment diff %+v", change))
 
-		if change.Type == "delete" || change.Type == "update" {
-			if change.Path[0] == "Bridge" {
-				// Changelog Path returns [Bridge 0 Port 0 Name]
-				_brId, _portId := change.Path[1], change.Path[3]
-				brId, err := strToInt(_brId)
-				if err != nil {
-					log.Log.Error(err, fmt.Sprintf("Failed to convert string to int %s", _brId))
-					return nil, err
-				}
-				portId, err := strToInt(_portId)
-				if err != nil {
-					log.Log.Error(err, fmt.Sprintf("Failed to convert string to int %s", _portId))
-					return nil, err
-				}
+		if change.Type != "delete" && change.Type != "update" {
+			continue
+		}
 
-				port := prev.Bridge[brId].Ports[portId]
-				portName := fmt.Sprintf("%s.%d", port.Name, port.Vlan)
+		// Only port changes have a path like [Bridge 0 Ports 0 Name]. Bridge
+		// level changes such as [Bridge 0 Mtu] do not remove any port.
+		if len(change.Path) < 4 || change.Path[0] != "Bridge" || change.Path[2] != "Ports" {
+			continue
+		}
 
-				if !slices.Contains(ports, portName) {
-					ports = append(ports, portName)
-				}
-			}
+		_brId, _portId := change.Path[1], change.Path[3]
+		brId, err := strToInt(_brId)
+		if err != nil {
+			log.Log.Error(err, fmt.Sprintf("Failed to convert string to int %s", _brId))
+			return nil, err
+		}
+		portId, err := strToInt(_portId)
+		if err != nil {
+			log.Log.Error(err, fmt.Sprintf("Failed to convert string to int %s", _portId))
+			return nil, err
+		}
+
+		if brId >= len(prev.Bridge) || portId >= len(prev.Bridge[brId].Ports) {
+			continue
+		}
+
+		port := prev.Bridge[brId].Ports[portId]
+		portName := fmt.Sprintf("%s.%d", port.Name, port.Vlan)
+
+		if !slices.Contains(ports, portName) {
+			ports = append(ports, portName)
 		}
 	}
 	return ports, nil
