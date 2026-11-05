@@ -98,6 +98,32 @@ func TestPortDiff(t *testing.T) {
 			want:    []string{"eth0.100"},
 		},
 		{
+			name: "bridge mtu changed",
+			prev: &networkv1alpha1.NetworkAttachmentSpec{Bridge: []networkv1alpha1.Bridge{
+				{Name: "br0", Mtu: 1500, Ports: []networkv1alpha1.Port{port("eth0", 100)}}}},
+			current: &networkv1alpha1.NetworkAttachmentSpec{Bridge: []networkv1alpha1.Bridge{
+				{Name: "br0", Mtu: 9000, Ports: []networkv1alpha1.Port{port("eth0", 100)}}}},
+			want: nil,
+		},
+		{
+			name:    "bridge renamed",
+			prev:    spec(br("br0", port("eth0", 100))),
+			current: spec(br("br1", port("eth0", 100))),
+			want:    nil,
+		},
+		{
+			name:    "bridge removed",
+			prev:    spec(br("br0", port("eth0", 100)), br("br1", port("eth1", 10), port("eth1", 20))),
+			current: spec(br("br0", port("eth0", 100))),
+			want:    []string{"eth1.10", "eth1.20"},
+		},
+		{
+			name:    "all bridges removed",
+			prev:    spec(br("br0", port("eth0", 100))),
+			current: spec(),
+			want:    []string{"eth0.100"},
+		},
+		{
 			name:    "port removed from the second bridge",
 			prev:    spec(br("br0", port("eth0", 100)), br("br1", port("eth1", 10), port("eth1", 20))),
 			current: spec(br("br0", port("eth0", 100)), br("br1", port("eth1", 10))),

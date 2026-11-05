@@ -202,3 +202,34 @@ func TestDeletePort(t *testing.T) {
 		t.Errorf("non-vlan interface was deleted")
 	}
 }
+
+func TestAddPort(t *testing.T) {
+	testutil.RequirePrivileged(t)
+	testutil.AddDummy(t, "tap0", "")
+	t.Cleanup(func() { testutil.DeleteLink("tap0.40") })
+
+	br := &Bridge{Name: "tbr-addport", Mtu: 1420}
+
+	// The port MTU defaults to the bridge MTU.
+	port := &Port{Name: "tap0", Vlan: 40}
+	if err := br.AddPort(port); err != nil {
+		t.Fatalf("AddPort() error = %v", err)
+	}
+	link, err := netlink.LinkByName("tap0.40")
+	if err != nil {
+		t.Fatalf("vlan interface was not created: %v", err)
+	}
+	if link.Attrs().MTU != 1420 {
+		t.Errorf("vlan MTU = %d, want the bridge MTU 1420", link.Attrs().MTU)
+	}
+
+	// A port without a vlan does not create anything.
+	if err := br.AddPort(&Port{Name: "tap0"}); err != nil {
+		t.Fatalf("AddPort() without vlan error = %v", err)
+	}
+
+	// Errors from creating the vlan are returned.
+	if err := br.AddPort(&Port{Name: "tmissing0", Vlan: 40}); err == nil {
+		t.Fatal("AddPort() with a missing parent interface should fail")
+	}
+}
