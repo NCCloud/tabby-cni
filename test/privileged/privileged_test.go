@@ -66,7 +66,8 @@ func TestPrivileged(t *testing.T) {
 			// TestAPIs needs envtest and does not change the host network.
 			"-skip", "^TestAPIs$",
 			"./controllers/...", "./pkg/..."),
-		testcontainers.WithWaitStrategy(wait.ForExit().WithExitTimeout(15*time.Minute)),
+		// The default 60s wait deadline is too short when modules are not cached yet.
+		testcontainers.WithWaitStrategyAndDeadline(15*time.Minute, wait.ForExit()),
 	)
 	testcontainers.CleanupContainer(t, ctr)
 	if err != nil {
