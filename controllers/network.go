@@ -111,18 +111,6 @@ func CreateNetwork(ctx context.Context, spec *networkv1alpha1.NetworkAttachmentS
 				return err
 			}
 		}
-
-		// Keep the bridge MAC address stable once the uplink ports are attached,
-		// so VMs attached later can't change it. A new bridge keeps the address of
-		// its uplink port, an existing one keeps its current address.
-		pinned, err := bridge.PinHardwareAddr(bridge_spec.Name)
-		if err != nil {
-			log.Log.Error(err, fmt.Sprintf("failed to pin MAC address of the bridge %s", bridge_spec.Name))
-			return err
-		}
-		if pinned {
-			log.Log.Info(fmt.Sprintf("Pinned MAC address of the bridge %s", bridge_spec.Name))
-		}
 	}
 
 	// Add static routes

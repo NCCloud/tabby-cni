@@ -52,7 +52,7 @@ spec:
 
 #### Bridge MAC address
 
-Once the ports from `spec.bridge[].ports` are attached, the operator pins the bridge MAC address, so it doesn't change when other interfaces (for example VM veths) are added to or removed from the bridge. A newly created bridge keeps the MAC address of its uplink port, an already existing bridge keeps its current MAC address. This matters with `ipMasq`, because the bridge MAC address is the VMs' default gateway (`169.254.1.1`) address.
+With `ipMasq` enabled, the bridge set in `ipMasq.bridge` answers ARP for the VMs' default gateway (`169.254.1.1`), so its MAC address is the gateway MAC address. The operator pins it to its current value (a newly created bridge keeps the MAC address of its uplink port), so it doesn't change when VM interfaces are attached to or detached from the bridge. Other bridges are left alone, since nothing depends on their MAC address.
 
 ### KubeVirt Live Migration Gratuitous ARP
 

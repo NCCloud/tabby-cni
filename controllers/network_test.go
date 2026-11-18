@@ -162,21 +162,9 @@ func TestCreateAndDeleteNetwork(t *testing.T) {
 		t.Errorf("route 10.249.0.0/16 via tbr-cn was not added: %+v", r)
 	}
 
-	// The bridge MAC address is pinned to the uplink address, so ports attached
-	// later can't change it.
-	uplink, err := netlink.LinkByName("tcn0")
-	if err != nil {
-		t.Fatalf("failed to find tcn0: %v", err)
-	}
-	if got, want := br.Attrs().HardwareAddr.String(), uplink.Attrs().HardwareAddr.String(); got != want {
-		t.Errorf("bridge MAC = %s, want the uplink MAC %s", got, want)
-	}
-	assignType, err := os.ReadFile("/sys/class/net/tbr-cn/addr_assign_type")
-	if err != nil {
-		t.Fatalf("failed to read addr_assign_type of tbr-cn: %v", err)
-	}
-	if got := strings.TrimSpace(string(assignType)); got != "3" {
-		t.Errorf("bridge addr_assign_type = %s, want 3 (NET_ADDR_SET)", got)
+	// Without ipMasq nothing depends on the bridge MAC address, so it is left alone.
+	if got := addrAssignType(t, "tbr-cn"); got == "3" {
+		t.Errorf("bridge without ipMasq has a pinned MAC address (addr_assign_type 3)")
 	}
 
 	// Creating the same network again is idempotent.
@@ -205,6 +193,10 @@ func TestEnableAndDeleteMasquerade(t *testing.T) {
 	if _, err := (&bridge.Bridge{Name: "tbr-mq"}).Create(); err != nil {
 		t.Fatalf("failed to create bridge: %v", err)
 	}
+	if got := addrAssignType(t, "tbr-mq"); got == "3" {
+		t.Fatalf("bridge MAC address is pinned before EnableMasquerade()")
+	}
+	macBefore := mustLink(t, "tbr-mq").Attrs().HardwareAddr.String()
 
 	ipmasq := &networkv1alpha1.Masquerade{
 		Enabled:       true,
@@ -233,7 +225,46 @@ func TestEnableAndDeleteMasquerade(t *testing.T) {
 		}
 	}
 
+	// The masquerade bridge is the VMs' default gateway, so its MAC address is
+	// pinned to its current value.
+	if got := addrAssignType(t, "tbr-mq"); got != "3" {
+		t.Errorf("masquerade bridge addr_assign_type = %s, want 3 (NET_ADDR_SET)", got)
+	}
+	if got := mustLink(t, "tbr-mq").Attrs().HardwareAddr.String(); got != macBefore {
+		t.Errorf("EnableMasquerade() changed the bridge MAC from %s to %s", macBefore, got)
+	}
+
+	// Enabling it again is idempotent and keeps the address.
+	if err := EnableMasquerade(ipmasq); err != nil {
+		t.Fatalf("second EnableMasquerade() error = %v", err)
+	}
+	if got := mustLink(t, "tbr-mq").Attrs().HardwareAddr.String(); got != macBefore {
+		t.Errorf("second EnableMasquerade() changed the bridge MAC from %s to %s", macBefore, got)
+	}
+
 	if err := DeleteMasquerade(ipmasq); err != nil {
 		t.Fatalf("DeleteMasquerade() error = %v", err)
 	}
+}
+
+func addrAssignType(t *testing.T, name string) string {
+	t.Helper()
+
+	content, err := os.ReadFile("/sys/class/net/" + name + "/addr_assign_type")
+	if err != nil {
+		t.Fatalf("failed to read addr_assign_type of %s: %v", name, err)
+	}
+
+	return strings.TrimSpace(string(content))
+}
+
+func mustLink(t *testing.T, name string) netlink.Link {
+	t.Helper()
+
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		t.Fatalf("failed to find %s: %v", name, err)
+	}
+
+	return link
 }
