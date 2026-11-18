@@ -162,6 +162,23 @@ func TestCreateAndDeleteNetwork(t *testing.T) {
 		t.Errorf("route 10.249.0.0/16 via tbr-cn was not added: %+v", r)
 	}
 
+	// The bridge MAC address is pinned to the uplink address, so ports attached
+	// later can't change it.
+	uplink, err := netlink.LinkByName("tcn0")
+	if err != nil {
+		t.Fatalf("failed to find tcn0: %v", err)
+	}
+	if got, want := br.Attrs().HardwareAddr.String(), uplink.Attrs().HardwareAddr.String(); got != want {
+		t.Errorf("bridge MAC = %s, want the uplink MAC %s", got, want)
+	}
+	assignType, err := os.ReadFile("/sys/class/net/tbr-cn/addr_assign_type")
+	if err != nil {
+		t.Fatalf("failed to read addr_assign_type of tbr-cn: %v", err)
+	}
+	if got := strings.TrimSpace(string(assignType)); got != "3" {
+		t.Errorf("bridge addr_assign_type = %s, want 3 (NET_ADDR_SET)", got)
+	}
+
 	// Creating the same network again is idempotent.
 	if err := CreateNetwork(context.Background(), spec); err != nil {
 		t.Fatalf("second CreateNetwork() error = %v", err)

@@ -143,6 +143,108 @@ func TestAddVlanAndBridgePorts(t *testing.T) {
 	}
 }
 
+func TestPinHardwareAddr(t *testing.T) {
+	testutil.RequireIntegration(t)
+	uplink := addDummyWithMAC(t, "tpin-up0", "02:00:00:00:00:0a")
+	vm := addDummyWithMAC(t, "tpin-vm0", "02:00:00:00:00:05")
+	lowerVM := addDummyWithMAC(t, "tpin-vm1", "02:00:00:00:00:01")
+	t.Cleanup(func() { testutil.DeleteLink("tbr-pin") })
+
+	created, err := (&Bridge{Name: "tbr-pin"}).Create()
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	attach := func(port netlink.Link) {
+		t.Helper()
+		if err := netlink.LinkSetMaster(port, created); err != nil {
+			t.Fatalf("failed to attach %s to the bridge: %v", port.Attrs().Name, err)
+		}
+	}
+	detach := func(port netlink.Link) {
+		t.Helper()
+		if err := netlink.LinkSetNoMaster(port); err != nil {
+			t.Fatalf("failed to detach %s from the bridge: %v", port.Attrs().Name, err)
+		}
+	}
+
+	attach(uplink)
+	attach(vm)
+
+	// Without pinning, the bridge follows its lowest port address. This is the
+	// behaviour being fixed: the VM port leaving changes the bridge address.
+	if got := linkMAC(t, "tbr-pin"); got != "02:00:00:00:00:05" {
+		t.Fatalf("unpinned bridge MAC = %s, want the lowest port MAC 02:00:00:00:00:05", got)
+	}
+	detach(vm)
+	if got := linkMAC(t, "tbr-pin"); got != "02:00:00:00:00:0a" {
+		t.Fatalf("unpinned bridge MAC after the lowest port left = %s, want 02:00:00:00:00:0a", got)
+	}
+	attach(vm)
+
+	pinned, err := PinHardwareAddr("tbr-pin")
+	if err != nil {
+		t.Fatalf("PinHardwareAddr() error = %v", err)
+	}
+	if !pinned {
+		t.Errorf("PinHardwareAddr() = false, want true for an unpinned bridge")
+	}
+	if got := linkMAC(t, "tbr-pin"); got != "02:00:00:00:00:05" {
+		t.Errorf("PinHardwareAddr() changed the bridge MAC to %s, want it kept at 02:00:00:00:00:05", got)
+	}
+	if got, err := addrAssignType("tbr-pin"); err != nil || got != netAddrSet {
+		t.Errorf("addr_assign_type = %d (err %v), want %d", got, err, netAddrSet)
+	}
+
+	// Pinning an already pinned bridge does nothing.
+	if pinned, err := PinHardwareAddr("tbr-pin"); err != nil || pinned {
+		t.Errorf("second PinHardwareAddr() = %v, %v, want false, nil", pinned, err)
+	}
+
+	// The address no longer follows the ports.
+	detach(vm)
+	if got := linkMAC(t, "tbr-pin"); got != "02:00:00:00:00:05" {
+		t.Errorf("pinned bridge MAC after a port left = %s, want 02:00:00:00:00:05", got)
+	}
+	attach(lowerVM)
+	if got := linkMAC(t, "tbr-pin"); got != "02:00:00:00:00:05" {
+		t.Errorf("pinned bridge MAC after a lower port joined = %s, want 02:00:00:00:00:05", got)
+	}
+}
+
+func TestPinHardwareAddrMissingBridge(t *testing.T) {
+	testutil.RequireIntegration(t)
+
+	if _, err := PinHardwareAddr("tmissing-br"); err == nil {
+		t.Fatal("PinHardwareAddr() of a missing bridge should fail")
+	}
+}
+
+func addDummyWithMAC(t *testing.T, name string, mac string) netlink.Link {
+	t.Helper()
+
+	link := testutil.AddDummy(t, name, "")
+	hwAddr, err := net.ParseMAC(mac)
+	if err != nil {
+		t.Fatalf("failed to parse MAC %s: %v", mac, err)
+	}
+	if err := netlink.LinkSetHardwareAddr(link, hwAddr); err != nil {
+		t.Fatalf("failed to set MAC %s on %s: %v", mac, name, err)
+	}
+
+	return link
+}
+
+func linkMAC(t *testing.T, name string) string {
+	t.Helper()
+
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		t.Fatalf("failed to find %s: %v", name, err)
+	}
+
+	return link.Attrs().HardwareAddr.String()
+}
+
 func TestAddVlanMissingParent(t *testing.T) {
 	testutil.RequireIntegration(t)
 

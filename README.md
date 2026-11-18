@@ -50,6 +50,10 @@ spec:
     via: br10
 ```
 
+#### Bridge MAC address
+
+Once the ports from `spec.bridge[].ports` are attached, the operator pins the bridge MAC address, so it doesn't change when other interfaces (for example VM veths) are added to or removed from the bridge. A newly created bridge keeps the MAC address of its uplink port, an already existing bridge keeps its current MAC address. This matters with `ipMasq`, because the bridge MAC address is the VMs' default gateway (`169.254.1.1`) address.
+
 ### KubeVirt Live Migration Gratuitous ARP
 
 If you use [KubeVirt](https://kubevirt.io/) and need to send a gratuitous ARP request upon the completion of a live VM migration, you can enable a controller that will watch `VirtualMachineInstance` events and send a gratuitous ARP request from the target node of the VM.<br>
