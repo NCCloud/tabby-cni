@@ -3,12 +3,21 @@ package bridge
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/vishvananda/netlink"
 )
 
 const SYSFS_PATH = "/sys/class/net/%s/brif/"
+
+const addrAssignTypePath = "/sys/class/net/%s/addr_assign_type"
+
+// netAddrSet is NET_ADDR_SET from include/uapi/linux/netdevice.h: the address
+// was set explicitly. A bridge in this state keeps its address when ports are
+// added or removed instead of adopting the lowest port address.
+const netAddrSet = 3
 
 type Bridge struct {
 	Name  string
@@ -46,6 +55,55 @@ func (bridge *Bridge) Create() (*netlink.Bridge, error) {
 	}
 
 	return br, nil
+}
+
+// PinHardwareAddr keeps the current MAC address of a bridge for good.
+//
+// Unless its address was set explicitly, the kernel gives a bridge the lowest
+// MAC address among its ports and recalculates it whenever a port is added or
+// removed. With VMs attached, that is usually the MAC of a VM's veth, so the
+// bridge address changes when such a VM is migrated away, stopped, or a VM with
+// a lower MAC address is attached. When the bridge is the VMs' default gateway
+// (169.254.1.1 answered by proxy_arp), every VM on the node keeps the old MAC
+// address in its ARP cache and loses routed traffic until the entry expires.
+//
+// Setting the address to its current value changes nothing on the wire but
+// marks it as set, so the kernel stops recalculating it. It returns true if the
+// address was pinned by this call and false if it was already pinned.
+func PinHardwareAddr(name string) (bool, error) {
+	assignType, err := addrAssignType(name)
+	if err != nil {
+		return false, err
+	}
+
+	if assignType == netAddrSet {
+		return false, nil
+	}
+
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		return false, fmt.Errorf("failed to find a link by name %s: %v", name, err)
+	}
+
+	if err = netlink.LinkSetHardwareAddr(link, link.Attrs().HardwareAddr); err != nil {
+		return false, fmt.Errorf("failed to pin MAC address %s of bridge %s: %v", link.Attrs().HardwareAddr, name, err)
+	}
+
+	return true, nil
+}
+
+func addrAssignType(name string) (int, error) {
+	content, err := os.ReadFile(fmt.Sprintf(addrAssignTypePath, name))
+	if err != nil {
+		return 0, fmt.Errorf("unable to read address assign type of %s: %w", name, err)
+	}
+
+	assignType, err := strconv.Atoi(strings.TrimSpace(string(content)))
+	if err != nil {
+		return 0, fmt.Errorf("unexpected address assign type %q of %s: %w", content, name, err)
+	}
+
+	return assignType, nil
 }
 
 func (bridge *Bridge) Remove() error {
