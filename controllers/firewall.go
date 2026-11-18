@@ -5,10 +5,12 @@ import (
 	"net"
 
 	networkv1alpha1 "github.com/NCCloud/tabby-cni/api/v1alpha1"
+	"github.com/NCCloud/tabby-cni/pkg/bridge"
 	"github.com/NCCloud/tabby-cni/pkg/ebtables"
 	"github.com/NCCloud/tabby-cni/pkg/iptables"
 	"github.com/containernetworking/plugins/pkg/utils/sysctl"
 	"github.com/j-keck/arping"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -32,6 +34,18 @@ func EnableMasquerade(ipmasq *networkv1alpha1.Masquerade) error {
 
 	if _, err := sysctl.Sysctl(ipv4Forward, "1"); err != nil {
 		return fmt.Errorf("failed to set ip_forward=1: %v", err)
+	}
+
+	// With proxy_arp the bridge MAC address is the VMs' default gateway (169.254.1.1)
+	// address. Keep it stable, so it doesn't change when VMs are attached to or
+	// detached from the bridge. Only the masquerade bridge is pinned: on other
+	// bridges nothing depends on the bridge MAC address.
+	pinned, err := bridge.PinHardwareAddr(ipmasq.Bridge)
+	if err != nil {
+		return fmt.Errorf("failed to pin MAC address of the masquerade bridge %s: %v", ipmasq.Bridge, err)
+	}
+	if pinned {
+		log.Log.Info(fmt.Sprintf("Pinned MAC address of the masquerade bridge %s", ipmasq.Bridge))
 	}
 
 	// Make sure arp request won't go outside of compute node
