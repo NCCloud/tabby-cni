@@ -108,13 +108,11 @@ func (bridge *Bridge) AddPort(port *Port) error {
 	}
 
 	if port.Vlan == 0 {
-
-	} else {
-		AddVlan(port.Name, port.Vlan, port.Mtu)
+		return nil
 	}
 
-	fmt.Println(port.Mtu)
-	return nil
+	_, err := AddVlan(port.Name, port.Vlan, port.Mtu)
+	return err
 }
 
 func DeletePort(name string) error {
